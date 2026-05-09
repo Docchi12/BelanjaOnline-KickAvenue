@@ -23,7 +23,7 @@ import Footer from './components/Footer';
 import KategoriPage from './components/KategoriPage'; 
 import BrandProducts from './components/BrandProducts'; 
 import CartScreen from './components/CartScreen'; 
-import ProfileScreen from './components/ProfileScreen'; // <-- Import baru
+import ProfileScreen from './components/ProfileScreen'; 
 
 // Definisi Tipe Data
 export interface Product {
@@ -36,7 +36,6 @@ export interface Product {
     selectedSize?: number;
 }
 
-// Tipe untuk navigasi halaman
 type PageType = 'home' | 'kategori' | 'cart' | 'brandProducts' | 'profile';
 
 export default function Index() {
@@ -44,9 +43,11 @@ export default function Index() {
     const [isLoading, setIsLoading] = useState(true);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [isRegistering, setIsRegistering] = useState(false);
+    
+    // State userName inilah yang akan dikirim ke ProfileScreen
     const [userName, setUserName] = useState('Guest'); 
     
-    // --- STATE NAVIGASI & KONTEN ---
+    // --- STATE NAVIGASI ---
     const [activePage, setActivePage] = useState<PageType>('home'); 
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null); 
     const [selectedBrand, setSelectedBrand] = useState<string>(''); 
@@ -55,145 +56,90 @@ export default function Index() {
     const [cartItems, setCartItems] = useState<Product[]>([]);
     const cartCount = cartItems.length;
 
-    // --- REFS & SCROLL ---
     const scrollRef = useRef<ScrollView>(null);
     const [scrollOffset, setScrollOffset] = useState(0); 
 
-    // --- LOGIKA KERANJANG ---
-    const handleAddToCart = (product: Product) => {
-        setCartItems(prev => [...prev, product]);
-        Alert.alert("Berhasil", `${product.name} telah masuk ke keranjang.`);
-    };
+    // --- HANDLER NAVIGASI ---
+    const navigateToHome = () => { setActivePage('home'); setSelectedProduct(null); };
+    const navigateToKategori = () => { setActivePage('kategori'); setSelectedProduct(null); };
+    const navigateToCart = () => { setActivePage('cart'); setSelectedProduct(null); };
+    const navigateToProfile = () => { setActivePage('profile'); setSelectedProduct(null); };
 
-    const handleRemoveFromCart = (index: number) => {
-        const newItems = [...cartItems];
-        newItems.splice(index, 1);
-        setCartItems(newItems);
-    };
-
-    // --- LOGIKA NAVIGASI ---
-    const handleOpenDetail = (product: Product) => {
-        setSelectedProduct(product);
-    };
+    const handleOpenDetail = (product: Product) => setSelectedProduct(product);
+    const handleBackToDashboard = () => setSelectedProduct(null);
 
     const handleOpenBrand = (brandName: string) => {
         setSelectedBrand(brandName);
         setActivePage('brandProducts');
     };
 
-    const handleBackToDashboard = () => {
-        setSelectedProduct(null);
-        if (activePage === 'home') {
-            setTimeout(() => {
-                scrollRef.current?.scrollTo({ y: scrollOffset, animated: false });
-            }, 50);
-        }
-    };
-
-    const navigateToHome = () => {
-        setActivePage('home');
-        setSelectedProduct(null);
-        scrollRef.current?.scrollTo({ y: 0, animated: true });
-    };
-
-    const navigateToKategori = () => {
-        setActivePage('kategori');
-        setSelectedProduct(null);
-    };
-
-    const navigateToCart = () => {
-        setActivePage('cart');
-        setSelectedProduct(null);
-    };
-
-    const navigateToProfile = () => {
-        setActivePage('profile');
-        setSelectedProduct(null);
-    };
-
     // --- LOGIKA AUTH ---
     const handleLogin = (name: string, pass: string) => {
         if (pass === 'admin123') {
-            setUserName(name); 
+            setUserName(name); // Menyimpan nama dari input login ke state
             setIsLoggedIn(true); 
         } else {
-            Alert.alert("Login Gagal", "Password yang Anda masukkan salah.");
+            Alert.alert("Login Gagal", "Password salah.");
         }
     };
 
     const handleLogout = () => {
         setIsLoggedIn(false);
+        setUserName('Guest');
         setActivePage('home');
     };
 
-    // Efek Splash Screen
     useEffect(() => {
         const timer = setTimeout(() => setIsLoading(false), 2500);
         return () => clearTimeout(timer);
     }, []);
 
-    // RENDER: Loading
     if (isLoading) return <SplashScreen />;
 
-    // RENDER: Auth Flow
     if (!isLoggedIn) {
         return isRegistering ? (
             <RegisterScreen 
                 onBackToLogin={() => setIsRegistering(false)} 
-                onRegisterSuccess={() => {
-                    setIsRegistering(false);
-                    Alert.alert("Sukses", "Akun berhasil dibuat. Silakan login.");
-                }} 
+                onRegisterSuccess={() => setIsRegistering(false)} 
             />
         ) : (
-            <LoginScreen 
-                onLogin={handleLogin} 
-                onRegisterPress={() => setIsRegistering(true)} 
-            />
+            <LoginScreen onLogin={handleLogin} onRegisterPress={() => setIsRegistering(true)} />
         );
     }
 
-    // RENDER: Overlay Detail
     if (selectedProduct) {
         return (
             <ProductDetail 
                 product={selectedProduct} 
                 onBack={handleBackToDashboard} 
-                onAddToCart={handleAddToCart}
+                onAddToCart={(p) => setCartItems([...cartItems, p])}
             />
         );
     }
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar 
-                barStyle={activePage === 'cart' || activePage === 'profile' ? 'dark-content' : 'dark-content'} 
-                backgroundColor="#fcfcfc" 
-            />
+            <StatusBar barStyle="dark-content" backgroundColor="#fcfcfc" />
 
-            {/* KONTEN HALAMAN */}
             <View style={styles.mainContent}>
                 {activePage === 'home' && (
-                <> 
-                    <Header 
+                    <> 
+                        <Header 
                             userName={userName} 
                             onCartPress={navigateToCart} 
                             cartCount={cartCount} 
-                    />
-
-                    <ScrollView 
-                        ref={scrollRef}
-                        showsVerticalScrollIndicator={false}
-                        contentContainerStyle={styles.scrollContent}
-                        onScroll={(e) => setScrollOffset(e.nativeEvent.contentOffset.y)}
-                        scrollEventThrottle={16} 
-                    >
-                        
-                        <BrandGrid onBrandPress={handleOpenBrand} />
-                        <PromoBanner />
-                        <FreshDrops onProductPress={handleOpenDetail} />
-                        <ProductList onProductPress={handleOpenDetail} />
-                    </ScrollView>
+                        />
+                        <ScrollView 
+                            ref={scrollRef}
+                            showsVerticalScrollIndicator={false}
+                            onScroll={(e) => setScrollOffset(e.nativeEvent.contentOffset.y)}
+                            scrollEventThrottle={16} 
+                        >
+                            <BrandGrid onBrandPress={handleOpenBrand} />
+                            <PromoBanner />
+                            <FreshDrops onProductPress={handleOpenDetail} />
+                            <ProductList onProductPress={handleOpenDetail} />
+                        </ScrollView>
                     </>
                 )}
 
@@ -213,26 +159,30 @@ export default function Index() {
                         onBack={navigateToHome} 
                         userName={userName} 
                         items={cartItems}
-                        onRemoveItem={handleRemoveFromCart}
+                        onRemoveItem={(index) => {
+                            const newItems = [...cartItems];
+                            newItems.splice(index, 1);
+                            setCartItems(newItems);
+                        }}
                     />
                 )}
 
-                {/* HALAMAN PROFIL BARU */}
+                {/* --- PERBAIKAN DI SINI --- */}
                 {activePage === 'profile' && (
                     <ProfileScreen 
+                        userName={userName} // Sekarang mengirim nama yang login
                         onLogout={handleLogout}
                     />
                 )}
             </View>
 
-            {/* FOOTER */}
             {activePage !== 'cart' && (
                 <Footer 
                     activePage={activePage === 'brandProducts' ? 'home' : activePage}
                     onHomePress={navigateToHome} 
                     onKategoriPress={navigateToKategori} 
                     onCartPress={navigateToCart}
-                    onProfilePress={navigateToProfile} // <-- Fungsi baru
+                    onProfilePress={navigateToProfile} 
                     cartCount={cartCount} 
                 />
             )}
@@ -246,10 +196,5 @@ const styles = StyleSheet.create({
         backgroundColor: '#fcfcfc',
         paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 
     },
-    mainContent: {
-        flex: 1,
-    },
-    scrollContent: { 
-        paddingBottom: 20 
-    }
+    mainContent: { flex: 1 },
 });
