@@ -5,10 +5,10 @@ import {
     StyleSheet, 
     TouchableOpacity, 
     ScrollView, 
-    SafeAreaView,
     Image,
     Platform,
     StatusBar,
+    SafeAreaView, 
     Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';

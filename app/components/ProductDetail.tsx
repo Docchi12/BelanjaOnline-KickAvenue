@@ -6,9 +6,9 @@ import {
     Image, 
     TouchableOpacity, 
     ScrollView, 
-    SafeAreaView, 
     Dimensions, 
     Platform, 
+    SafeAreaView,
     StatusBar 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';

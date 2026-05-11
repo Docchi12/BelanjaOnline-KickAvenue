@@ -4,14 +4,14 @@ import {
     Text,
     StyleSheet,
     TouchableOpacity,
+    SafeAreaView,
     ScrollView,
     StatusBar,
     Alert,
     Platform
 } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 
-// DEFINISI PROPS: userName dikirim dari state akun di index.tsx
 interface ProfileScreenProps {
     userName: string; 
     onLogout: () => void;
@@ -27,7 +27,7 @@ export default function ProfileScreen({ userName, onLogout }: ProfileScreenProps
     };
 
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#fff" />
             
             <View style={styles.header}>
@@ -36,11 +36,9 @@ export default function ProfileScreen({ userName, onLogout }: ProfileScreenProps
 
             <ScrollView showsVerticalScrollIndicator={false}>
                 
-                {/* NAMA OTOMATIS MENGIKUTI AKUN */}
                 <View style={styles.paddingContainer}>
                     <Text style={styles.greetingText}>Hai {userName},</Text>
                     
-                    {/* Banner VIP dengan aksen Biru aplikasi */}
                     <TouchableOpacity style={styles.vipBanner} activeOpacity={0.8}>
                         <View style={styles.vipBadge}>
                             <Text style={styles.vipBadgeText}>VIP</Text>
@@ -53,11 +51,12 @@ export default function ProfileScreen({ userName, onLogout }: ProfileScreenProps
                     </TouchableOpacity>
                 </View>
 
-                {/* UPDATE PESANAN */}
                 <View style={styles.sectionMargin}>
                     <View style={[styles.paddingContainer, styles.rowBetween]}>
                         <Text style={styles.sectionTitle}>Update Pesanan</Text>
-                        <TouchableOpacity><Text style={styles.linkText}>Lihat Semua {'>'}</Text></TouchableOpacity>
+                        <TouchableOpacity>
+                            <Text style={styles.linkText}>Lihat Semua {'>'}</Text>
+                        </TouchableOpacity>
                     </View>
                     
                     <View style={styles.orderStatusRow}>
@@ -68,7 +67,6 @@ export default function ProfileScreen({ userName, onLogout }: ProfileScreenProps
                     </View>
                 </View>
 
-                {/* WALLET SECTION - Aksen Biru */}
                 <View style={[styles.paddingContainer, styles.rowContainer]}>
                     <View style={styles.walletCard}>
                         <Ionicons name="color-filter-outline" size={20} color="#f1c40f" />
@@ -82,16 +80,24 @@ export default function ProfileScreen({ userName, onLogout }: ProfileScreenProps
                     </View>
                 </View>
 
-                {/* MENU AKTIVITAS */}
+                {/* MENU AKTIVITAS DENGAN LIVE CHAT */}
                 <View style={styles.menuSection}>
                     <Text style={styles.menuGroupTitle}>Aktivitas</Text>
+                    
                     <GridItem icon="person-outline" label="Rincian Akun" />
+                    
+                    {/* FITUR BARU: Live Chat */}
+                    <GridItem 
+                        icon="chatbubbles-outline" 
+                        label="Live Chat" 
+                        onPress={() => Alert.alert("Live Chat", "Menghubungkan ke Customer Service...")}
+                    />
+                    
                     <GridItem icon="settings-outline" label="Preferensi" />
                     <GridItem icon="pricetag-outline" label="Brand Favorit" />
                     <GridItem icon="cube-outline" label="Riwayat Pesanan" />
                 </View>
 
-                {/* TOMBOL LOGOUT */}
                 <View style={styles.footerContainer}>
                     <TouchableOpacity style={styles.logoutButton} onPress={handleLogoutPress}>
                         <Text style={styles.logoutButtonText}>Keluar dari Akun</Text>
@@ -101,20 +107,24 @@ export default function ProfileScreen({ userName, onLogout }: ProfileScreenProps
 
                 <View style={{ height: 80 }} />
             </ScrollView>
-        </View>
+        </SafeAreaView>
     );
 }
 
-// Komponen Pembantu
-const StatusIcon = ({ icon, label }: any) => (
+// Komponen Pembantu dengan pengetikan props yang lebih baik
+const StatusIcon = ({ icon, label }: { icon: any, label: string }) => (
     <View style={styles.statusItem}>
         <Ionicons name={icon} size={24} color="#333" />
         <Text style={styles.statusLabel}>{label}</Text>
     </View>
 );
 
-const GridItem = ({ icon, label }: any) => (
-    <TouchableOpacity style={styles.listMenuItem}>
+const GridItem = ({ icon, label, onPress }: { icon: any, label: string, onPress?: () => void }) => (
+    <TouchableOpacity 
+        style={styles.listMenuItem} 
+        onPress={onPress}
+        activeOpacity={0.6}
+    >
         <Ionicons name={icon} size={20} color="#007AFF" />
         <Text style={styles.menuItemLabel}>{label}</Text>
         <Ionicons name="chevron-forward" size={16} color="#eee" />
@@ -124,8 +134,10 @@ const GridItem = ({ icon, label }: any) => (
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#fff' },
     header: { 
-        paddingTop: Platform.OS === 'ios' ? 50 : 30, paddingBottom: 15, 
-        alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#f5f5f5' 
+        paddingVertical: 15, 
+        alignItems: 'center', 
+        borderBottomWidth: 1, 
+        borderBottomColor: '#f5f5f5' 
     },
     headerTitle: { fontWeight: 'bold', fontSize: 13, letterSpacing: 2 },
     paddingContainer: { paddingHorizontal: 20, marginTop: 20 },
@@ -151,8 +163,14 @@ const styles = StyleSheet.create({
     walletLabel: { fontSize: 11, color: '#888' },
     menuSection: { marginTop: 30, paddingHorizontal: 20 },
     menuGroupTitle: { fontSize: 15, fontWeight: 'bold', marginBottom: 15 },
-    listMenuItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#f9f9f9' },
-    menuItemLabel: { flex: 1, marginLeft: 15, fontSize: 14 },
+    listMenuItem: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        paddingVertical: 15, 
+        borderBottomWidth: 1, 
+        borderBottomColor: '#f9f9f9' 
+    },
+    menuItemLabel: { flex: 1, marginLeft: 15, fontSize: 14, color: '#333' },
     footerContainer: { paddingHorizontal: 20, marginTop: 40 },
     logoutButton: { padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#ff3b30', alignItems: 'center' },
     logoutButtonText: { color: '#ff3b30', fontWeight: 'bold' },
