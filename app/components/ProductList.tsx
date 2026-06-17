@@ -1,84 +1,18 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Product } from './productsData'; // Pastikan path import benar
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 50) / 2;
 
-const products = [
-    {
-        id: 1,
-        name: 'Air Jordan 1 Low',
-        brand: 'Jordan',
-        category: 'Lifestyle',
-        price: 'Rp 2.499.000',
-        gender: 'Pria', // Gender ditampilkan diluar
-        sizes: [39, 40, 41, 42, 43], 
-        image: 'https://image.807garage.com/content/uploads/2024/6/air-jordan-1-low-wolf-grey-8.jpg',
-        rating: 4.9,
-    },
-    {
-        id: 2,
-        name: 'Samba OG',
-        brand: 'Adidas',
-        category: 'Skate Shoes',
-        price: 'Rp 2.200.000',
-        gender: 'Wanita',
-        sizes: [38, 39, 40, 41, 42],
-        image: 'https://image.807garage.com/content/uploads/2024/6/adidas-samba-og-black-white-gum-8.jpg',
-        rating: 4.8,
-    },
-    {
-        id: 3,
-        name: '530 Silver Grey',
-        brand: 'New Balance',
-        category: 'Running Shoes',
-        price: 'Rp 1.850.000',
-        gender: 'Pria',
-        sizes: [40, 41, 42, 43, 44],
-        image: 'https://image.807garage.com/content/uploads/2024/7/new-balance-530-white-silver-metallic-8.jpg',
-        rating: 4.7,
-    },
-    {
-        id: 4,
-        name: 'Chuck Taylor 70s',
-        brand: 'Converse',
-        category: 'Lifestyle',
-        price: 'Rp 999.000',
-        gender: 'Wanita',
-        sizes: [37, 38, 39, 40, 41],
-        image: 'https://preloved.co.id/_ipx/f_webp/https://assets.preloved.co.id/products/378525/a0aa8494-1406-4c19-b279-207aa3a92fc6.jpg',
-        rating: 4.6,
-    },
-    {
-        id: 5,
-        name: 'Old Skool Black',
-        brand: 'Vans',
-        category: 'Skate Shoes',
-        price: 'Rp 1.100.000',
-        gender: 'Pria',
-        sizes: [39, 40, 41, 42, 43],
-        image: 'https://img.lazcdn.com/g/p/aa4ee0347a47dd381113c4394a1219e2.jpg_720x720q80.jpg',
-        rating: 4.5,
-    },
-    {
-        id: 6,
-        name: 'Classic Leather',
-        brand: 'Reebok',
-        category: 'Training Shoes',
-        price: 'Rp 1.299.000',
-        gender: 'Unisex',
-        sizes: [40, 41, 42, 43, 44],
-        image: 'https://www.lazone.id/storage/news/Februari%202021/16%20Februari%202021/Reebok%20Classic%20Leather%20Anti%20Basah/rebook%20goretekx%20-%20cover.jpg',
-        rating: 4.7,
-    },
-];
-
+// --- PERBAIKAN: Gunakan Props agar bisa menerima data dari index.tsx ---
 interface ProductListProps {
-    onProductPress: (product: any) => void;
+    products: Product[]; // Menerima array produk yang sinkron dengan Admin
+    onProductPress: (product: Product) => void;
 }
 
-export default function ProductList({ onProductPress }: ProductListProps) {
+export default function ProductList({ products, onProductPress }: ProductListProps) {
     return (
         <View style={styles.container}>
             <View style={styles.headerRow}>
@@ -97,20 +31,29 @@ export default function ProductList({ onProductPress }: ProductListProps) {
                         onPress={() => onProductPress(item)}
                     >
                         <View style={styles.imageContainer}>
-                            <Image source={{ uri: item.image }} style={styles.productImg} resizeMode="contain" />
+                            {/* PERBAIKAN: Gunakan imageUrl sesuai interface Product */}
+                            <Image 
+                                source={{ uri: item.imageUrl }} 
+                                style={styles.productImg} 
+                                resizeMode="contain" 
+                            />
                         </View>
                         <View style={styles.info}>
                             <View style={styles.brandRow}>
                                 <Text style={styles.brandText}>{item.brand}</Text>
-                                {/* Label Gender dikembalikan ke sini */}
                                 <Text style={styles.genderLabel}>{item.gender}</Text>
                             </View>
                             <Text style={styles.nameText} numberOfLines={1}>{item.name}</Text>
-                            <Text style={styles.priceText}>{item.price}</Text>
+                            
+                            {/* Format harga ke Rupiah */}
+                            <Text style={styles.priceText}>
+                                Rp {item.price.toLocaleString('id-ID')}
+                            </Text>
                             
                             <View style={styles.ratingRow}>
                                 <Ionicons name="star" size={12} color="#FFD700" />
-                                <Text style={styles.ratingText}>{item.rating}</Text>
+                                <Text style={styles.ratingText}>4.8</Text> 
+                                {/* ^ Rating bisa kamu tambahkan di interface jika perlu, sementara hardcoded agar tidak error */}
                             </View>
                         </View>
                     </TouchableOpacity>

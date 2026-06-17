@@ -2,6 +2,11 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+// Interface untuk menerima fungsi dari Index
+interface KategoriPageProps {
+    onCategoryPress: (categoryName: string) => void;
+}
+
 const categories = [
     { name: 'Lifestyle', icon: 'shirt-outline' },
     { name: 'Running Shoes', icon: 'walk-outline' },
@@ -13,7 +18,7 @@ const categories = [
     { name: 'Football Shoes', icon: 'football-outline' },
 ];
 
-export default function KategoriPage() {
+export default function KategoriPage({ onCategoryPress }: KategoriPageProps) {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -22,7 +27,12 @@ export default function KategoriPage() {
             
             <ScrollView contentContainerStyle={styles.list}>
                 {categories.map((item, index) => (
-                    <TouchableOpacity key={index} style={styles.categoryItem}>
+                    <TouchableOpacity 
+                        key={index} 
+                        style={styles.categoryItem}
+                        // Memanggil fungsi yang dikirim dari file index
+                        onPress={() => onCategoryPress(item.name)}
+                    >
                         <View style={styles.iconCircle}>
                             <Ionicons name={item.icon as any} size={24} color="#007AFF" />
                         </View>

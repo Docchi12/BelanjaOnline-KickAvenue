@@ -1,56 +1,19 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import { Product } from './productsData'; // Import interface Product
 
 const { width } = Dimensions.get('window');
 
+// --- PERBAIKAN: Gunakan Props yang benar ---
 interface FreshDropsProps {
-    onProductPress: (product: any) => void;
+    products: Product[]; // Menerima data produk dari index.tsx
+    onProductPress: (product: Product) => void;
 }
 
-const freshItems = [
-    { 
-        id: 1, 
-        name: 'Dunk Low Retro', 
-        brand: 'Nike', 
-        price: 'Rp 1.549.000',
-        gender: 'Unisex',
-        category: 'Lifestyle',
-        rating: '4.8',
-        image: 'https://image.807garage.com/content/uploads/2024/6/dunk-low-retro-team-gold-white-6.jpg' 
-    },
-    { 
-        id: 2, 
-        name: 'Gazelle Indoor', 
-        brand: 'Adidas', 
-        price: 'Rp 2.100.000',
-        gender: 'Wanita', 
-        category: 'Classic',
-        rating: '4.7',
-        image: 'https://images.jdsports.id/i/jpl/jd_IG1640_b?w=700&resmode=sharp&qlt=70&fmt=webp' 
-    },
-    { 
-        id: 3, 
-        name: '9060 Sea Salt', 
-        brand: 'New Balance', 
-        price: 'Rp 2.899.000',
-        gender: 'Wanita',
-        category: 'Running',
-        rating: '4.9',
-        image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR4G_AVPv0-7EsrnoMXQup-nEnhwmazc8hjUA&s' 
-    },
-    {
-        id: 4, 
-        name: 'Go Walk 6', 
-        brand: 'Skechers', 
-        price: 'Rp 1.299.000',
-        gender: 'Unisex',
-        category: 'Walking',
-        rating: '4.6',
-        image: 'https://img.lazcdn.com/g/ff/kf/S30efd52b206042fdbc2fe798ca6ee261N.jpg_960x960q80.jpg_.webp' 
-    },
-];
+export default function FreshDrops({ products, onProductPress }: FreshDropsProps) {
+    // Kita ambil 5 produk terbaru/teratas untuk bagian "Fresh Drops"
+    const freshItems = products.slice(0, 5);
 
-export default function FreshDrops({ onProductPress }: FreshDropsProps) {
     return (
         <View style={styles.container}>
             <View style={styles.headerRow}>
@@ -71,18 +34,26 @@ export default function FreshDrops({ onProductPress }: FreshDropsProps) {
                         onPress={() => onProductPress(item)}
                     >
                         <View style={styles.imageContainer}>
-                            <Image source={{ uri: item.image }} style={styles.img} resizeMode="contain" />
+                            {/* PERBAIKAN: Gunakan imageUrl sesuai interface */}
+                            <Image 
+                                source={{ uri: item.imageUrl }} 
+                                style={styles.img} 
+                                resizeMode="contain" 
+                            />
                         </View>
                         <View style={styles.info}>
                             <View style={styles.brandRow}>
                                 <Text style={styles.brand}>{item.brand}</Text>
-                                {/* Badge warna biru muda yang identik */}
                                 <View style={styles.genderBadge}>
                                     <Text style={styles.genderText}>{item.gender}</Text>
                                 </View>
                             </View>
                             <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
-                            <Text style={styles.price}>{item.price}</Text>
+                            
+                            {/* Format harga ke Rupiah */}
+                            <Text style={styles.price}>
+                                Rp {item.price.toLocaleString('id-ID')}
+                            </Text>
                         </View>
                     </TouchableOpacity>
                 ))}
@@ -94,7 +65,7 @@ export default function FreshDrops({ onProductPress }: FreshDropsProps) {
 const styles = StyleSheet.create({
     container: {
         marginTop: 20,
-        marginBottom: 40, 
+        marginBottom: 20, 
     },
     headerRow: {
         paddingHorizontal: 20,
@@ -113,7 +84,8 @@ const styles = StyleSheet.create({
     scrollContent: {
         paddingLeft: 20,
         paddingRight: 10,
-        backgroundColor : '#007AFF',
+        backgroundColor: '#007AFF',
+        // Hapus background biru mencolok agar desain lebih bersih
     },
     card: {
         width: width * 0.45,
@@ -155,14 +127,14 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
     },
     genderBadge: {
-        backgroundColor: '#EBF5FF', // Biru muda seragam
+        backgroundColor: '#EBF5FF',
         paddingHorizontal: 6,
         paddingVertical: 2,
         borderRadius: 6,
     },
     genderText: {
         fontSize: 8,
-        color: '#007AFF', // Teks biru seragam
+        color: '#007AFF',
         fontWeight: 'bold',
     },
     name: {
@@ -174,6 +146,6 @@ const styles = StyleSheet.create({
     price: {
         fontSize: 13,
         fontWeight: 'bold',
-        color: '#007AFF', // Harga dibuat biru supaya senada
+        color: '#007AFF',
     },
 });

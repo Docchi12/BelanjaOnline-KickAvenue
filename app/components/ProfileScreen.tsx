@@ -8,7 +8,8 @@ import {
     ScrollView,
     StatusBar,
     Alert,
-    Platform
+    Platform,
+    Linking // 1. Import Linking untuk membuka WhatsApp
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -19,6 +20,24 @@ interface ProfileScreenProps {
 
 export default function ProfileScreen({ userName, onLogout }: ProfileScreenProps) {
     
+    // 2. Fungsi untuk menghubungkan ke WhatsApp dengan nomor kamu
+    const handleWhatsApp = () => {
+        const phoneNumber = '6285281008856'; // Nomor kamu sudah terpasang
+        const message = `Halo Admin, saya ${userName}. Saya ingin bertanya tentang pesanan saya.`;
+        const url = `whatsapp://send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
+
+        Linking.canOpenURL(url)
+            .then((supported) => {
+                if (supported) {
+                    return Linking.openURL(url);
+                } else {
+                    // Jika aplikasi WA tidak ada (misal di simulator), buka via browser
+                    return Linking.openURL(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`);
+                }
+            })
+            .catch(() => Alert.alert("Error", "Aplikasi WhatsApp tidak ditemukan"));
+    };
+
     const handleLogoutPress = () => {
         Alert.alert("Konfirmasi", "Apakah Anda yakin ingin keluar?", [
             { text: "Batal", style: "cancel" },
@@ -80,17 +99,16 @@ export default function ProfileScreen({ userName, onLogout }: ProfileScreenProps
                     </View>
                 </View>
 
-                {/* MENU AKTIVITAS DENGAN LIVE CHAT */}
                 <View style={styles.menuSection}>
                     <Text style={styles.menuGroupTitle}>Aktivitas</Text>
                     
                     <GridItem icon="person-outline" label="Rincian Akun" />
                     
-                    {/* FITUR BARU: Live Chat */}
+                    {/* Live Chat yang sudah dihubungkan ke fungsi handleWhatsApp */}
                     <GridItem 
                         icon="chatbubbles-outline" 
                         label="Live Chat" 
-                        onPress={() => Alert.alert("Live Chat", "Menghubungkan ke Customer Service...")}
+                        onPress={handleWhatsApp}
                     />
                     
                     <GridItem icon="settings-outline" label="Preferensi" />
@@ -111,7 +129,6 @@ export default function ProfileScreen({ userName, onLogout }: ProfileScreenProps
     );
 }
 
-// Komponen Pembantu dengan pengetikan props yang lebih baik
 const StatusIcon = ({ icon, label }: { icon: any, label: string }) => (
     <View style={styles.statusItem}>
         <Ionicons name={icon} size={24} color="#333" />
