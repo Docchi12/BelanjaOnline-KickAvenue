@@ -1,3 +1,5 @@
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useMemo, useState } from "react";
 import {
   Alert,
@@ -11,19 +13,17 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 
 // Supabase
 import { supabase } from "../lib/supabase";
 
 // Tipe data produk dan daftar brand yang diizinkan
-import { ALLOWED_BRANDS, Product } from "./productsData";
+import { Product } from "./productsData";
 
 // Komponen pendukung
+import AddProductModal from "./AddProductModal";
 import AnalyticsTab from "./AnalyticsTab";
 import OrdersTab from "./OrdersTab";
-import AddProductModal from "./AddProductModal";
 
 const { height } = Dimensions.get("window");
 
@@ -47,22 +47,19 @@ export default function AdminDashboard({
     const lowStock = products.filter((item) => (item.stock ?? 0) < 5).length;
     const totalValue = products.reduce(
       (sum, p) => sum + p.price * (p.stock ?? 0),
-      0
+      0,
     );
     const totalSalesCount = products.reduce(
       (sum, p) => sum + (p.sales || 0),
-      0
+      0,
     );
     return { lowStock, totalValue, totalSalesCount };
   }, [products]);
 
   // ─── FORMAT MATA UANG ─────────────────────────────────────────────────────
-  // Satu fungsi, dipakai di mana saja di file ini (termasuk dikirim ke AnalyticsTab)
-  const formatCurrency = (val: number) =>
-    `Rp ${val.toLocaleString("id-ID")}`;
+  const formatCurrency = (val: number) => `Rp ${val.toLocaleString("id-ID")}`;
 
   // ─── SIMPAN PRODUK (TAMBAH / EDIT) ────────────────────────────────────────
-  // Fungsi ini dipanggil oleh AddProductModal saat admin klik "Simpan Produk"
   const handleSaveProduct = async (newProduct: Product) => {
     if (editingProduct) {
       // ── MODE EDIT: perbarui baris yang sudah ada di Supabase ──
@@ -87,11 +84,10 @@ export default function AdminDashboard({
 
       // Berhasil → perbarui tampilan tanpa reload
       setProducts((prev) =>
-        prev.map((p) => (p.id === editingProduct.id ? newProduct : p))
+        prev.map((p) => (p.id === editingProduct.id ? newProduct : p)),
       );
     } else {
       // ── MODE TAMBAH BARU: insert baris baru ke Supabase ──
-      // (AddProductModal sudah menyiapkan objek newProduct dari form)
       const { data, error } = await supabase
         .from("products")
         .insert({
@@ -105,8 +101,8 @@ export default function AdminDashboard({
           sizes: newProduct.sizes,
           image_url: newProduct.imageUrl,
         })
-        .select()   // minta Supabase kembalikan data yang baru disimpan
-        .single();  // karena kita insert 1 baris, ambil sebagai objek tunggal
+        .select() // minta Supabase kembalikan data yang baru disimpan
+        .single(); // karena kita insert 1 baris, ambil sebagai objek tunggal
 
       if (error) {
         Alert.alert("Gagal", "Produk gagal ditambahkan: " + error.message);
@@ -128,38 +124,33 @@ export default function AdminDashboard({
 
   // ─── HAPUS PRODUK ─────────────────────────────────────────────────────────
   const handleDelete = (id: number, name: string) => {
-    Alert.alert(
-      "Hapus Produk",
-      `Apakah Anda yakin ingin menghapus ${name}?`,
-      [
-        { text: "Batal", style: "cancel" },
-        {
-          text: "Hapus",
-          style: "destructive",
-          onPress: async () => {
-            const { error } = await supabase
-              .from("products")
-              .delete()
-              .eq("id", id);
+    Alert.alert("Hapus Produk", `Apakah Anda yakin ingin menghapus ${name}?`, [
+      { text: "Batal", style: "cancel" },
+      {
+        text: "Hapus",
+        style: "destructive",
+        onPress: async () => {
+          const { error } = await supabase
+            .from("products")
+            .delete()
+            .eq("id", id);
 
-            if (error) {
-              Alert.alert("Gagal", "Produk gagal dihapus: " + error.message);
-              return;
-            }
+          if (error) {
+            Alert.alert("Gagal", "Produk gagal dihapus: " + error.message);
+            return;
+          }
 
-            // Berhasil → hapus dari tampilan
-            setProducts((prev) => prev.filter((p) => p.id !== id));
-          },
+          // Berhasil → hapus dari tampilan
+          setProducts((prev) => prev.filter((p) => p.id !== id));
         },
-      ]
-    );
+      },
+    ]);
   };
 
   // ─── TAMPILAN TAB INVENTORY ───────────────────────────────────────────────
   const renderInventory = () => (
     <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollView}>
       <View style={styles.content}>
-
         {/* Kartu ringkasan stok */}
         <View style={styles.statsRow}>
           <View style={styles.miniCard}>
@@ -167,10 +158,7 @@ export default function AdminDashboard({
             <Text style={styles.miniValue}>{products.length}</Text>
           </View>
           <View
-            style={[
-              styles.miniCard,
-              stats.lowStock > 0 && styles.lowStockCard,
-            ]}
+            style={[styles.miniCard, stats.lowStock > 0 && styles.lowStockCard]}
           >
             <Text style={styles.miniLabel}>Stok Menipis</Text>
             <Text
@@ -190,7 +178,7 @@ export default function AdminDashboard({
           <TouchableOpacity
             style={styles.bulkBtn}
             onPress={() => {
-              setEditingProduct(null); // pastikan tidak dalam mode edit
+              setEditingProduct(null);
               setIsModalVisible(true);
             }}
           >
@@ -231,7 +219,6 @@ export default function AdminDashboard({
                 <Text style={styles.stockLabel}>Stok</Text>
               </View>
 
-              {/* Tombol Edit */}
               <TouchableOpacity
                 style={styles.actionIconBtn}
                 onPress={() => {
@@ -246,7 +233,6 @@ export default function AdminDashboard({
                 />
               </TouchableOpacity>
 
-              {/* Tombol Hapus */}
               <TouchableOpacity
                 style={styles.actionIconBtn}
                 onPress={() => handleDelete(item.id, item.name)}
@@ -269,11 +255,7 @@ export default function AdminDashboard({
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" />
 
-      {/* Header biru + tab bar */}
-      <LinearGradient
-        colors={["#0056b3", "#007AFF"]}
-        style={styles.header}
-      >
+      <LinearGradient colors={["#0056b3", "#007AFF"]} style={styles.header}>
         <View style={styles.headerTop}>
           <View>
             <Text style={styles.roleText}>ADMINISTRATOR PANEL</Text>
@@ -314,12 +296,12 @@ export default function AdminDashboard({
         <AnalyticsTab
           stats={stats}
           products={products}
-          formatCurrency={formatCurrency}  // nama fungsi sudah konsisten
+          formatCurrency={formatCurrency}
         />
       )}
       {activeTab === "orders" && <OrdersTab />}
 
-      {/* Modal tambah / edit produk */}
+      {/* Modal Tambah/Edit Produk */}
       <AddProductModal
         visible={isModalVisible}
         onClose={() => {
