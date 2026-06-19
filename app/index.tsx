@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { supabase } from "./lib/supabase";
 import {
     Platform,
     SafeAreaView,
@@ -27,7 +28,7 @@ import RegisterScreen from "./components/RegisterScreen";
 import SplashScreen from "./components/SplashScreen";
 
 // --- KUNCI UTAMA: Import interface dan data awal ---
-import initialProducts, { Product } from "./components/productsData"; 
+import { Product } from "./components/productsData";
 
 type PageType =
     | "home"
@@ -51,7 +52,7 @@ export default function Index() {
     const [cartItems, setCartItems] = useState<Product[]>([]);
 
     // State utama menggunakan interface Product
-    const [allProducts, setAllProducts] = useState<Product[]>(initialProducts);
+    const [allProducts, setAllProducts] = useState<Product[]>([]);
 
     const scrollRef = useRef<ScrollView>(null);
     const cartCount = cartItems.length;
@@ -90,9 +91,43 @@ export default function Index() {
     };
 
     useEffect(() => {
-        const timer = setTimeout(() => setIsLoading(false), 2500);
-        return () => clearTimeout(timer);
-    }, []);
+    const timer = setTimeout(() => setIsLoading(false), 2500);
+    return () => clearTimeout(timer);
+}, []);
+
+// ← TAMBAHKAN BLOK INI TEPAT DI SINI, SETELAH useEffect SPLASH SCREEN
+useEffect(() => {
+    const fetchProducts = async () => {
+        const { data, error } = await supabase
+            .from('products')
+            .select('*')
+            .order('id', { ascending: true });
+
+        if (error) {
+            console.error('Gagal ambil produk:', error.message);
+            return;
+        }
+
+        if (data) {
+            // Ubah format data dari Supabase agar cocok dengan interface Product di frontend
+            const formatted: Product[] = data.map((item: any) => ({
+                id: item.id,
+                brand: item.brand,
+                name: item.name,
+                price: item.price,
+                stock: item.stock,
+                sales: item.sales,
+                gender: item.gender,
+                category: item.category,
+                sizes: item.sizes || [],
+                imageUrl: item.image_url,   // di DB namanya image_url, di frontend imageUrl
+            }));
+            setAllProducts(formatted);
+        }
+    };
+
+    fetchProducts();
+}, []); // [] artinya hanya dijalankan sekali saat aplikasi pertama dibuka
 
     if (isLoading) return <SplashScreen />;
 
