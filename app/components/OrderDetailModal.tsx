@@ -40,7 +40,9 @@ export default function OrderDetailModal({ visible, order, onClose, onUpdate, ge
 
                         <View style={styles.detailSection}>
                             <Text style={styles.label}>ALAMAT PENGIRIMAN</Text>
-                            <Text style={styles.value}>Jl. Merdeka No. 123, Jakarta Selatan (Dummy)</Text>
+                            <Text style={styles.value}>
+                                {order.shipping_address ? order.shipping_address : "Alamat Tidak Ditemukan"}
+                            </Text>
                         </View>
 
                         <View style={styles.detailSection}>

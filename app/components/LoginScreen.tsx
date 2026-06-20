@@ -24,32 +24,45 @@ interface LoginProps {
 }
 
 export default function LoginScreen({ onLogin, onRegisterPress }: LoginProps) {
-    const [username, setUsername] = useState('');
+    const [usernameOrEmail, setUsernameOrEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPass, setShowPass] = useState(false);
     const [loading, setLoading] = useState(false);
 
     const handleSignIn = async () => {
-        const cleanEmail = username.trim();
+        const cleanInput = usernameOrEmail.trim();
         const cleanPassword = password.trim();
 
-        if (!cleanEmail || !cleanPassword) {
-            Alert.alert("Input Kosong", "Harap isi email dan password!");
+        if (!cleanInput || !cleanPassword) {
+            Alert.alert("Input Kosong", "Harap isi email/username dan password!");
             return;
         }
 
         setLoading(true);
 
-        // ── LANGKAH 1: Login ke Supabase ──────────────────────────────────
-        console.log('Mencoba login dengan email:', cleanEmail);
+        let targetEmail = cleanInput;
 
+        // ── LOGIKA: Login via Email ATAU Username ──────────────────────────
+        if (!cleanInput.includes('@')) {
+            const { data: userData, error: userError } = await supabase
+                .from('profiles')
+                .select('email')
+                .eq('username', cleanInput)
+                .single();
+
+            if (userError || !userData) {
+                setLoading(false);
+                Alert.alert("Login Gagal", "Username tidak ditemukan.");
+                return;
+            }
+            targetEmail = userData.email;
+        }
+
+        // ── LANGKAH 1: Login ke Supabase ──────────────────────────────────
         const { data, error } = await supabase.auth.signInWithPassword({
-            email: cleanEmail,
+            email: targetEmail,
             password: cleanPassword,
         });
-
-        console.log('Hasil login - data:', data);
-        console.log('Hasil login - error:', error);
 
         if (error) {
             setLoading(false);
@@ -63,8 +76,6 @@ export default function LoginScreen({ onLogin, onRegisterPress }: LoginProps) {
             return;
         }
 
-        console.log('Login berhasil, user id:', data.user.id);
-
         // ── LANGKAH 2: Ambil profil dari tabel profiles ───────────────────
         const { data: profile, error: profileError } = await supabase
             .from('profiles')
@@ -72,43 +83,17 @@ export default function LoginScreen({ onLogin, onRegisterPress }: LoginProps) {
             .eq('id', data.user.id)
             .single();
 
-        console.log('Hasil profil - data:', profile);
-        console.log('Hasil profil - error:', profileError);
-
         setLoading(false);
 
         if (profileError || !profile) {
-            // ── FALLBACK: profil belum ada di tabel profiles ──────────────
-            // Ini terjadi kalau user dibuat manual lewat Supabase dashboard
-            // tanpa trigger otomatis yang membuat baris di tabel profiles.
-            // Solusi: buat dulu baris profilnya, lalu login sebagai 'user' biasa.
-            console.log('Profil tidak ditemukan, mencoba membuat profil baru...');
-
-            const { error: insertError } = await supabase
-                .from('profiles')
-                .insert({
-                    id: data.user.id,
-                    email: cleanEmail,
-                    full_name: cleanEmail.split('@')[0], // pakai bagian sebelum @ sebagai nama
-                    username: cleanEmail.split('@')[0],
-                    role: 'user',
-                });
-
-            if (insertError) {
-                console.log('Gagal buat profil:', insertError.message);
-                // Tetap lanjutkan login walau profil gagal dibuat,
-                // pakai email sebagai nama dan role 'user'
-            }
-
-            // Lanjutkan login dengan data minimal
-            onLogin(cleanEmail.split('@')[0], cleanPassword, 'user');
+            // Fallback jika profil belum ada atau error saat fetch
+            onLogin(targetEmail.split('@')[0], cleanPassword, 'user');
             return;
         }
 
         // ── LANGKAH 3: Login berhasil dengan data profil lengkap ──────────
-        console.log('Profil ditemukan:', profile);
         onLogin(
-            profile.full_name || cleanEmail.split('@')[0],
+            profile.full_name || targetEmail.split('@')[0],
             cleanPassword,
             profile.role as 'admin' | 'user'
         );
@@ -134,7 +119,7 @@ export default function LoginScreen({ onLogin, onRegisterPress }: LoginProps) {
                     {/* Form */}
                     <View style={styles.form}>
 
-                        {/* Input Email */}
+                        {/* Input Email/Username */}
                         <View style={styles.inputWrapper}>
                             <MaterialCommunityIcons
                                 name="account-outline"
@@ -144,12 +129,11 @@ export default function LoginScreen({ onLogin, onRegisterPress }: LoginProps) {
                             />
                             <TextInput
                                 style={styles.input}
-                                placeholder="Email"
+                                placeholder="Email or Username"
                                 placeholderTextColor="#A0A0A0"
                                 autoCapitalize="none"
-                                keyboardType="email-address"
-                                value={username}
-                                onChangeText={setUsername}
+                                value={usernameOrEmail}
+                                onChangeText={setUsernameOrEmail}
                             />
                         </View>
 

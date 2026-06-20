@@ -11,7 +11,8 @@ export interface Product {
     gender: string;
     category: string;
     sizes: string[]; 
-    imageUrl: string; // PERBAIKAN: Wajib ada agar sinkron dengan handleSave di AdminDashboard
+    image_url: string; // DIPERBAIKI: Disamakan dengan kolom di Supabase (snake_case)
+    rating?: number; 
 }
 
 // Daftar merk yang diizinkan agar sinkron dengan validasi AdminDashboard
@@ -38,7 +39,8 @@ export const initialProducts: Product[] = [
         gender: 'Unisex', 
         category: 'Lifestyle',
         sizes: ['38', '39', '40', '41', '42'],
-        imageUrl: "https://images.unsplash.com/photo-1552346154-21d32810aba3?q=80&w=500"
+        image_url: "https://images.unsplash.com/photo-1552346154-21d32810aba3?q=80&w=500",
+        rating: 4.8
     },
     { 
         id: 102, 
@@ -50,7 +52,8 @@ export const initialProducts: Product[] = [
         gender: 'Unisex', 
         category: 'Lifestyle',
         sizes: ['37', '38', '39', '40', '41', '42', '43'],
-        imageUrl: "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?q=80&w=500"
+        image_url: "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?q=80&w=500",
+        rating: 4.7
     },
 
     // --- CASUAL ---
@@ -64,7 +67,8 @@ export const initialProducts: Product[] = [
         gender: 'Pria', 
         category: 'Casual',
         sizes: ['40', '41', '42', '43'],
-        imageUrl: "https://images.unsplash.com/photo-1491553895911-0055eca6402d?q=80&w=500"
+        image_url: "https://images.unsplash.com/photo-1491553895911-0055eca6402d?q=80&w=500",
+        rating: 4.9
     },
     { 
         id: 202, 
@@ -76,7 +80,8 @@ export const initialProducts: Product[] = [
         gender: 'Unisex', 
         category: 'Casual',
         sizes: ['38', '39', '40', '41', '42'],
-        imageUrl: "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?q=80&w=500"
+        image_url: "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?q=80&w=500",
+        rating: 4.6
     },
 
     // --- RUNNING SHOES ---
@@ -90,7 +95,8 @@ export const initialProducts: Product[] = [
         gender: 'Wanita', 
         category: 'Running Shoes',
         sizes: ['36', '37', '38', '39'],
-        imageUrl: "https://images.unsplash.com/photo-1539185441755-769473a23570?q=80&w=500"
+        image_url: "https://images.unsplash.com/photo-1539185441755-769473a23570?q=80&w=500",
+        rating: 4.8
     },
     { 
         id: 302, 
@@ -102,7 +108,8 @@ export const initialProducts: Product[] = [
         gender: 'Pria', 
         category: 'Running Shoes',
         sizes: ['40', '41', '42', '43', '44'],
-        imageUrl: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=500"
+        image_url: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=500",
+        rating: 4.8
     },
 
     // --- TRAINING SHOES ---
@@ -116,7 +123,8 @@ export const initialProducts: Product[] = [
         gender: 'Pria', 
         category: 'Training Shoes',
         sizes: ['40', '41', '42', '43'],
-        imageUrl: "https://images.unsplash.com/photo-1543508282-6319a3e4621f?q=80&w=500"
+        image_url: "https://images.unsplash.com/photo-1543508282-6319a3e4621f?q=80&w=500",
+        rating: 4.5
     },
     { 
         id: 402, 
@@ -128,7 +136,8 @@ export const initialProducts: Product[] = [
         gender: 'Wanita', 
         category: 'Training Shoes',
         sizes: ['36', '37', '38', '39'],
-        imageUrl: "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?q=80&w=500"
+        image_url: "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?q=80&w=500",
+        rating: 4.8
     },
 
     // --- SKATE SHOES ---
@@ -142,7 +151,8 @@ export const initialProducts: Product[] = [
         gender: 'Unisex', 
         category: 'Skate Shoes',
         sizes: ['39', '40', '41', '42'],
-        imageUrl: "https://images.unsplash.com/photo-1560769629-975ec94e6a86?q=80&w=500"
+        image_url: "https://images.unsplash.com/photo-1560769629-975ec94e6a86?q=80&w=500",
+        rating: 4.7
     },
     { 
         id: 502, 
@@ -154,7 +164,8 @@ export const initialProducts: Product[] = [
         gender: 'Pria', 
         category: 'Skate Shoes',
         sizes: ['40', '41', '42', '43'],
-        imageUrl: "https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?q=80&w=500"
+        image_url: "https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?q=80&w=500",
+        rating: 4.9
     }
 ];
 

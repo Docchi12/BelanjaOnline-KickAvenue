@@ -16,7 +16,6 @@ interface AnalyticsProps {
     formatCurrency: (val: number) => string;
 }
 
-// PASTIKAN MENGGUNAKAN 'export default' DI SINI
 export default function AnalyticsTab({ stats, products, formatCurrency }: AnalyticsProps) {
     
     // Logika perhitungan data Pie Chart berdasarkan Brand
@@ -89,12 +88,12 @@ export default function AnalyticsTab({ stats, products, formatCurrency }: Analyt
                 </View>
 
                 <Text style={[styles.sectionTitle, {marginTop: 10}]}>Produk Terlaris (Top Sales)</Text>
-                {[...products].sort((a, b) => b.sales - a.sales).slice(0, 3).map((item) => (
+                {[...products].sort((a, b) => (b.sales || 0) - (a.sales || 0)).slice(0, 3).map((item) => (
                     <View key={item.id} style={styles.productCard}>
                         <View style={styles.cardInfo}>
                             <Text style={styles.brandTag}>{item.brand}</Text>
                             <Text style={styles.itemName}>{item.name}</Text>
-                            <Text style={styles.categoryText}>{item.sales} unit terjual</Text>
+                            <Text style={styles.categoryText}>{item.sales || 0} unit terjual</Text>
                         </View>
                         <View style={styles.topBadge}>
                             <MaterialCommunityIcons name="trophy" size={14} color="#FFD700" />

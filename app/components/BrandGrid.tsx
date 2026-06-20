@@ -6,16 +6,16 @@ import {
     Text,
     TouchableOpacity,
     View,
-} from "react-native";
+    } from "react-native";
 
-const { width } = Dimensions.get("window");
+    const { width } = Dimensions.get("window");
 
-// Definisi Tipe Data untuk Props agar tidak error di TypeScript
-interface BrandGridProps {
+    // Definisi Tipe Data untuk Props agar tidak error di TypeScript
+    interface BrandGridProps {
     onBrandPress: (brandName: string) => void;
-}
+    }
 
-const brands = [
+    const brands = [
     {
         id: 1,
         name: "Nike",
@@ -56,33 +56,33 @@ const brands = [
         name: "Vans",
         logo: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgpXGJBDiaFMkzHmXKIhzVR4VsjFW7MN_BOpGQpvtvEWKa6HSxhI1dT0OvJDwJHKPGMeY41zrflvZRWVcIbUVlCemeBlUqKcYKa900kmmy-DjbdyubcX9Ez8uNUksUJW0227vb3iPfsVJPeI3aQewGm-2s-avXTGQU9hW2u5-mqQTzzTPizCPON-C5I/s320/GKL23_Vans%20-%20Koleksilogo.com.jpg",
     },
-];
+    ];
 
-// Menambahkan parameter { onBrandPress }
-export default function BrandGrid({ onBrandPress }: BrandGridProps) {
+    // Menambahkan parameter { onBrandPress }
+    export default function BrandGrid({ onBrandPress }: BrandGridProps) {
     return (
         <View style={styles.container}>
-            <Text style={styles.sectionTitle}>Shop by Brand</Text>
-            <View style={styles.grid}>
-                {brands.map((item) => (
-                    <TouchableOpacity 
-                        key={item.id} 
-                        style={styles.brandItem}
-                        activeOpacity={0.7}
-                        onPress={() => onBrandPress(item.name)} // <--- INI KUNCINYA
-                    >
-                        <View style={styles.iconContainer}>
-                            <Image source={{ uri: item.logo }} style={styles.brandLogo} />
-                        </View>
-                        <Text style={styles.brandName}>{item.name}</Text>
-                    </TouchableOpacity>
-                ))}
-            </View>
+        <Text style={styles.sectionTitle}>Shop by Brand</Text>
+        <View style={styles.grid}>
+            {brands.map((item) => (
+            <TouchableOpacity
+                key={item.id}
+                style={styles.brandItem}
+                activeOpacity={0.7}
+                onPress={() => onBrandPress(item.name)} // <--- INI KUNCINYA
+            >
+                <View style={styles.iconContainer}>
+                <Image source={{ uri: item.logo }} style={styles.brandLogo} />
+                </View>
+                <Text style={styles.brandName}>{item.name}</Text>
+            </TouchableOpacity>
+            ))}
+        </View>
         </View>
     );
-}
+    }
 
-const styles = StyleSheet.create({
+    const styles = StyleSheet.create({
     container: {
         paddingHorizontal: 20,
         marginTop: 20,

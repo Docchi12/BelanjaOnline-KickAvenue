@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
     View, 
     Text, 
@@ -11,63 +11,13 @@ import {
     Modal,
     FlatList,
     SafeAreaView, 
-    Image
+    Image,
+    ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '../lib/supabase';
 
 const { width } = Dimensions.get('window');
-
-// --- DATABASE TETAP LENGKAP (TIDAK ADA YANG DIHAPUS) ---
-const ALL_PRODUCTS_DATA: Record<string, any[]> = {
-    'Nike': [
-        { id: 101, brand: 'Nike', name: 'Air Jordan 1 Low', price: 'Rp 1.929.000', numericPrice: 1929000, gender: 'Pria', category: 'Lifestyle', rating: 4.9, sizes: [40, 41, 42], image: 'https://images.unsplash.com/photo-1584735175315-9d5df23860e6?q=80&w=400' },
-        { id: 102, brand: 'Nike', name: 'Vaporfly 3', price: 'Rp 3.549.000', numericPrice: 3549000, gender: 'Unisex', category: 'Running shoes', rating: 4.8, sizes: [38, 39, 40], image: 'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?q=80&w=400' },
-        { id: 103, brand: 'Nike', name: 'Phantom GX 2', price: 'Rp 3.299.000', numericPrice: 3299000, gender: 'Pria', category: 'Football shoes', rating: 5.0, sizes: [41, 42, 43], image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=400' },
-        { id: 104, brand: 'Nike', name: 'G.T. Hustle 2', price: 'Rp 2.489.000', numericPrice: 2489000, gender: 'Pria', category: 'Basketball shoes', rating: 4.7, sizes: [42, 43, 44], image: 'https://images.unsplash.com/photo-1605348532760-6753d2c43329?q=80&w=400' },
-    ],
-    'Adidas': [
-        { id: 201, brand: 'Adidas', name: 'Ultraboost Light', price: 'Rp 3.300.000', numericPrice: 3300000, gender: 'Pria', category: 'Running shoes', rating: 4.9, sizes: [40, 41, 42], image: 'https://images.unsplash.com/photo-1587563871167-1ee9c731aefb?q=80&w=400' },
-        { id: 202, brand: 'Adidas', name: 'Samba OG', price: 'Rp 2.200.000', numericPrice: 2200000, gender: 'Wanita', category: 'Lifestyle', rating: 4.8, sizes: [38, 39, 40], image: 'https://images.unsplash.com/photo-1460353581641-37baddab0fa2?q=80&w=400' },
-        { id: 203, brand: 'Adidas', name: 'Predator Elite', price: 'Rp 4.000.000', numericPrice: 4000000, gender: 'Pria', category: 'Football shoes', rating: 5.0, sizes: [41, 42, 43], image: 'https://images.unsplash.com/photo-1511551203524-9a24350a5771?q=80&w=400' },
-        { id: 204, brand: 'Adidas', name: 'Dropset 2 Trainer', price: 'Rp 1.900.000', numericPrice: 1900000, gender: 'Wanita', category: 'Training shoes', rating: 4.6, sizes: [37, 38, 39], image: 'https://images.unsplash.com/photo-1552346154-21d32810aba3?q=80&w=400' },
-    ],
-    'New Balance': [
-        { id: 401, brand: 'New Balance', name: '530 Silver Grey', price: 'Rp 1.850.000', numericPrice: 1850000, gender: 'Pria', category: 'Lifestyle', rating: 4.7, sizes: [39, 40, 41], image: 'https://images.unsplash.com/photo-1636718282214-0b4100576307?q=80&w=400' },
-        { id: 402, brand: 'New Balance', name: 'NB 2002R Grey', price: 'Rp 2.599.000', numericPrice: 2599000, gender: 'Pria', category: 'Chunky sneakers', rating: 4.8, sizes: [40, 41, 42], image: 'https://images.unsplash.com/photo-1620138546344-7b2c38517dee?q=80&w=400' },
-        { id: 403, brand: 'New Balance', name: 'Fresh Foam X', price: 'Rp 2.799.000', numericPrice: 2799000, gender: 'Pria', category: 'Running shoes', rating: 4.7, sizes: [41, 42, 43], image: 'https://images.unsplash.com/photo-1539185441755-769473a23570?q=80&w=400' },
-        { id: 404, brand: 'New Balance', name: 'NB 9060 Blue', price: 'Rp 2.999.000', numericPrice: 2999000, gender: 'Wanita', category: 'Chunky sneakers', rating: 4.9, sizes: [37, 38, 39], image: 'https://images.unsplash.com/photo-1671041926610-85f838639097?q=80&w=400' },
-    ],
-    'Skechers': [
-        { id: 301, brand: 'Skechers', name: 'GoWalk 6', price: 'Rp 999.000', numericPrice: 999000, gender: 'Pria', category: 'Walking shoes', rating: 4.8, sizes: [40, 41, 42], image: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?q=80&w=400' },
-        { id: 302, brand: 'Skechers', name: 'Max Cushioning', price: 'Rp 1.399.000', numericPrice: 1399000, gender: 'Wanita', category: 'Training shoes', rating: 4.7, sizes: [37, 38, 39], image: 'https://images.unsplash.com/photo-1560769629-975ec94e6a86?q=80&w=400' },
-        { id: 303, brand: 'Skechers', name: 'D-Lites 4.0', price: 'Rp 1.199.000', numericPrice: 1199000, gender: 'Wanita', category: 'Chunky sneakers', rating: 4.6, sizes: [36, 37, 38], image: 'https://images.unsplash.com/photo-1605405748313-a416a1b84491?q=80&w=400' },
-        { id: 304, brand: 'Skechers', name: 'Arch Fit Road', price: 'Rp 1.599.000', numericPrice: 1599000, gender: 'Pria', category: 'Running shoes', rating: 4.8, sizes: [42, 43, 44], image: 'https://images.unsplash.com/photo-1551107696-a4b0c5a0d9a2?q=80&w=400' },
-    ],
-    'Puma': [
-        { id: 501, brand: 'Puma', name: 'RS-X Efekt', price: 'Rp 1.999.000', numericPrice: 1999000, gender: 'Unisex', category: 'Chunky sneakers', rating: 4.8, sizes: [40, 41, 42], image: 'https://images.unsplash.com/photo-1608231387042-66d1773070a5?q=80&w=400' },
-        { id: 502, brand: 'Puma', name: 'Suede Classic', price: 'Rp 1.199.000', numericPrice: 1199000, gender: 'Unisex', category: 'Lifestyle', rating: 4.7, sizes: [39, 40, 41], image: 'https://images.unsplash.com/photo-1595341888016-a392ef81b7de?q=80&w=400' },
-        { id: 503, brand: 'Puma', name: 'Deviate Nitro', price: 'Rp 2.799.000', numericPrice: 2799000, gender: 'Pria', category: 'Running shoes', rating: 4.9, sizes: [41, 42, 43], image: 'https://images.unsplash.com/photo-1512374382149-4332c6c02151?q=80&w=400' },
-        { id: 504, brand: 'Puma', name: 'Future Ultimate', price: 'Rp 3.199.000', numericPrice: 3199000, gender: 'Pria', category: 'Football shoes', rating: 4.8, sizes: [41, 42], image: 'https://images.unsplash.com/photo-1633467433309-84081c741490?q=80&w=400' },
-    ],
-    'Vans': [
-        { id: 601, brand: 'Vans', name: 'Old Skool Black', price: 'Rp 1.100.000', numericPrice: 1100000, gender: 'Pria', category: 'Skate shoes', rating: 4.5, sizes: [38, 39, 40, 41], image: 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?q=80&w=400' },
-        { id: 602, brand: 'Vans', name: 'Sk8-Hi High', price: 'Rp 1.299.000', numericPrice: 1299000, gender: 'Pria', category: 'Skate shoes', rating: 4.8, sizes: [41, 42, 43], image: 'https://images.unsplash.com/photo-1565357419076-6abbad3f5924?q=80&w=400' },
-        { id: 603, brand: 'Vans', name: 'Slip-On Checker', price: 'Rp 999.000', numericPrice: 999000, gender: 'Unisex', category: 'Lifestyle', rating: 4.7, sizes: [37, 38, 39], image: 'https://images.unsplash.com/photo-1594911772125-07fc7a2d8d9f?q=80&w=400' },
-        { id: 604, brand: 'Vans', name: 'Knu Skool', price: 'Rp 1.499.000', numericPrice: 1499000, gender: 'Pria', category: 'Chunky sneakers', rating: 4.9, sizes: [40, 41, 42], image: 'https://images.unsplash.com/photo-1595461135849-bf08893fdc2c?q=80&w=400' },
-    ],
-    'Converse': [
-        { id: 701, brand: 'Converse', name: 'Chuck Taylor 70s', price: 'Rp 999.000', numericPrice: 999000, gender: 'Wanita', category: 'Lifestyle', rating: 4.6, sizes: [39, 40, 41], image: 'https://images.unsplash.com/photo-1491553895911-0055eca6402d?q=80&w=400' },
-        { id: 702, brand: 'Converse', name: 'Run Star Hike', price: 'Rp 1.799.000', numericPrice: 1799000, gender: 'Wanita', category: 'Chunky sneakers', rating: 4.8, sizes: [36, 37, 38], image: 'https://images.unsplash.com/photo-1605348532760-6753d2c43329?q=80&w=400' },
-        { id: 703, brand: 'Converse', name: 'Jack Purcell', price: 'Rp 1.099.000', numericPrice: 1099000, gender: 'Pria', category: 'Lifestyle', rating: 4.7, sizes: [40, 41, 42], image: 'https://images.unsplash.com/photo-1556906781-9a412961c28c?q=80&w=400' },
-        { id: 704, brand: 'Converse', name: 'BB Shift', price: 'Rp 1.699.000', numericPrice: 1699000, gender: 'Pria', category: 'Basketball shoes', rating: 4.6, sizes: [42, 43, 44], image: 'https://images.unsplash.com/photo-1533681018184-68bd1d8f39fe?q=80&w=400' },
-    ],
-    'Reebok': [
-        { id: 801, brand: 'Reebok', name: 'Nano X3', price: 'Rp 2.199.000', numericPrice: 2199000, gender: 'Pria', category: 'Training shoes', rating: 4.8, sizes: [41, 42, 43], image: 'https://images.unsplash.com/photo-1529810313688-44ea1c2d81d3?q=80&w=400' },
-        { id: 802, brand: 'Reebok', name: 'Club C 85', price: 'Rp 1.299.000', numericPrice: 1299000, gender: 'Unisex', category: 'Lifestyle', rating: 4.7, sizes: [39, 40, 41], image: 'https://images.unsplash.com/photo-1511551203524-9a24350a5771?q=80&w=400' },
-        { id: 803, brand: 'Reebok', name: 'Classic Leather', price: 'Rp 1.299.000', numericPrice: 1299000, gender: 'Unisex', category: 'Lifestyle', rating: 4.7, sizes: [40, 41], image: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=400' },
-        { id: 804, brand: 'Reebok', name: 'Floatride Energy', price: 'Rp 1.699.000', numericPrice: 1699000, gender: 'Wanita', category: 'Running shoes', rating: 4.8, sizes: [37, 38, 39], image: 'https://images.unsplash.com/photo-1491553895911-0055eca6402d?q=80&w=400' },
-    ]
-};
 
 const FILTER_SECTIONS = [
     { id: 'category', label: 'Kategori', options: ['Lifestyle', 'Running shoes', 'Skate shoes', 'Training shoes', 'Chunky sneakers', 'Walking shoes', 'Basketball shoes', 'Football shoes'] },
@@ -78,6 +28,8 @@ const FILTER_SECTIONS = [
 ];
 
 export default function BrandProducts({ brandName, onBack, onProductPress }: any) {
+    const [products, setProducts] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [isFilterVisible, setIsFilterVisible] = useState(false);
     const [activeSection, setActiveSection] = useState('category');
@@ -86,23 +38,47 @@ export default function BrandProducts({ brandName, onBack, onProductPress }: any
         category: [], gender: [], size: [], rating: [], price: []
     });
 
-    // FIX: Tambahkan pengecekan null/undefined agar tidak error saat render
+    useEffect(() => {
+        const fetchProducts = async () => {
+            setLoading(true);
+            // Menambahkan filter .gt('stock', 0) agar produk habis tidak tampil
+            const { data, error } = await supabase
+                .from('products')
+                .select('*')
+                .eq('brand', brandName)
+                .gt('stock', 0); 
+            
+            if (error) {
+                console.error("Error fetching products:", error);
+            } else {
+                const formatted = (data || []).map(item => ({
+                    ...item,
+                    imageUrl: item.image_url, 
+                    rating: item.rating || 0,
+                    numericPrice: Number(item.price) 
+                }));
+                setProducts(formatted);
+            }
+            setLoading(false);
+        };
+
+        fetchProducts();
+    }, [brandName]);
+
     const filteredProducts = useMemo(() => {
-        // Jika data merk tidak ada, return array kosong biar gak crash
-        let products = ALL_PRODUCTS_DATA[brandName] || [];
+        let list = products;
         
         if (searchQuery) {
-            products = products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
+            list = list.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
         }
 
-        return products.filter(p => {
+        return list.filter(p => {
             const matchCategory = selectedFilters.category.length === 0 || selectedFilters.category.includes(p.category);
             const matchGender = selectedFilters.gender.length === 0 || selectedFilters.gender.includes(p.gender);
-            // FIX: Cek apakah p.sizes ada sebelum akses .some
             const matchSize = selectedFilters.size.length === 0 || (p.sizes && p.sizes.some((s: any) => selectedFilters.size.includes(s.toString())));
             
             const matchRating = selectedFilters.rating.length === 0 || selectedFilters.rating.some(f => {
-                if (f === '5 Bintang') return p.rating === 5;
+                if (f === '5 Bintang') return p.rating >= 5;
                 if (f === '4+ Bintang') return p.rating >= 4;
                 return p.rating >= 3;
             });
@@ -115,7 +91,7 @@ export default function BrandProducts({ brandName, onBack, onProductPress }: any
 
             return matchCategory && matchGender && matchSize && matchRating && matchPrice;
         });
-    }, [brandName, searchQuery, selectedFilters]);
+    }, [products, searchQuery, selectedFilters]);
 
     const toggleFilter = (sectionId: string, option: string) => {
         setSelectedFilters(prev => ({
@@ -131,7 +107,7 @@ export default function BrandProducts({ brandName, onBack, onProductPress }: any
     const renderProductItem = ({ item }: any) => (
         <TouchableOpacity style={styles.productCard} onPress={() => onProductPress(item)}>
             <View style={styles.imageBox}>
-                <Image source={{ uri: item.image }} style={styles.productImage} />
+                <Image source={{ uri: item.imageUrl }} style={styles.productImage} />
                 {item.rating >= 4.9 && (
                     <View style={styles.topRatedBadge}><Text style={styles.topRatedText}>Bestseller</Text></View>
                 )}
@@ -142,7 +118,7 @@ export default function BrandProducts({ brandName, onBack, onProductPress }: any
                     <View style={styles.genderBadge}><Text style={styles.genderBadgeText}>{item.gender}</Text></View>
                 </View>
                 <Text style={styles.categoryLabel}>{item.category}</Text>
-                <Text style={styles.productPrice}>{item.price}</Text>
+                <Text style={styles.productPrice}>Rp {item.numericPrice.toLocaleString('id-ID')}</Text>
                 <View style={styles.ratingRow}>
                     <Ionicons name="star" size={12} color="#FFD700" />
                     <Text style={styles.ratingText}>{item.rating}</Text>
@@ -150,6 +126,8 @@ export default function BrandProducts({ brandName, onBack, onProductPress }: any
             </View>
         </TouchableOpacity>
     );
+
+    if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#007AFF" /></View>;
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -226,6 +204,7 @@ export default function BrandProducts({ brandName, onBack, onProductPress }: any
 }
 
 const styles = StyleSheet.create({
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     safeArea: { flex: 1, backgroundColor: '#fff', paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 },
     header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, paddingVertical: 12, gap: 12, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
     iconButton: { padding: 4 },

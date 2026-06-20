@@ -26,8 +26,9 @@ import ProfileScreen from "./components/ProfileScreen";
 import PromoBanner from "./components/PromoBanner";
 import RegisterScreen from "./components/RegisterScreen";
 import SplashScreen from "./components/SplashScreen";
+import OrderDetailsScreen from "./components/OrderDetailsScreen";
+import OrdersHistoryScreen from "./components/OrdersHistoryScreen"; 
 
-// --- KUNCI UTAMA: Import interface dan data awal ---
 import { Product } from "./components/productsData";
 
 type PageType =
@@ -37,7 +38,9 @@ type PageType =
     | "brandProducts"
     | "categoryProducts"
     | "profile"
-    | "admin";
+    | "admin"
+    | "ordersHistory"
+    | "orderDetail";
 
 export default function Index() {
     const [isLoading, setIsLoading] = useState(true);
@@ -50,18 +53,20 @@ export default function Index() {
     const [selectedBrand, setSelectedBrand] = useState<string>("");
     const [selectedCategory, setSelectedCategory] = useState<string>("");
     const [cartItems, setCartItems] = useState<Product[]>([]);
-
-    // State utama menggunakan interface Product
+    
+    // State tambahan untuk navigasi detail & filter
+    const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+    const [orderFilter, setOrderFilter] = useState<string | undefined>(undefined);
+    
     const [allProducts, setAllProducts] = useState<Product[]>([]);
 
     const scrollRef = useRef<ScrollView>(null);
     const cartCount = cartItems.length;
 
-    // --- NAVIGATION ---
-    const navigateToHome = () => { setActivePage("home"); setSelectedProduct(null); };
-    const navigateToKategori = () => { setActivePage("kategori"); setSelectedProduct(null); };
-    const navigateToCart = () => { setActivePage("cart"); setSelectedProduct(null); };
-    const navigateToProfile = () => { setActivePage("profile"); setSelectedProduct(null); };
+    const navigateToHome = () => { setActivePage("home"); setSelectedProduct(null); setOrderFilter(undefined); };
+    const navigateToKategori = () => { setActivePage("kategori"); setSelectedProduct(null); setOrderFilter(undefined); };
+    const navigateToCart = () => { setActivePage("cart"); setSelectedProduct(null); setOrderFilter(undefined); };
+    const navigateToProfile = () => { setActivePage("profile"); setSelectedProduct(null); setOrderFilter(undefined); };
 
     const handleOpenCategory = (categoryName: string) => {
         setSelectedCategory(categoryName);
@@ -90,44 +95,36 @@ export default function Index() {
         setActivePage("home");
     };
 
-    useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 2500);
-    return () => clearTimeout(timer);
-}, []);
-
-// ← TAMBAHKAN BLOK INI TEPAT DI SINI, SETELAH useEffect SPLASH SCREEN
-useEffect(() => {
-    const fetchProducts = async () => {
-        const { data, error } = await supabase
-            .from('products')
-            .select('*')
-            .order('id', { ascending: true });
-
-        if (error) {
-            console.error('Gagal ambil produk:', error.message);
-            return;
+    // FUNGSI NAVIGASI PUSAT YANG DIPERBAIKI
+    const handleGlobalNavigate = (page: string, params?: any) => {
+        if (params?.orderId) setSelectedOrderId(params.orderId);
+        
+        // Update filter jika ada, jika tidak, pertahankan filter yang ada (untuk navigasi detail)
+        if (params?.filterStatus !== undefined) {
+            setOrderFilter(params.filterStatus);
         }
-
-        if (data) {
-            // Ubah format data dari Supabase agar cocok dengan interface Product di frontend
-            const formatted: Product[] = data.map((item: any) => ({
-                id: item.id,
-                brand: item.brand,
-                name: item.name,
-                price: item.price,
-                stock: item.stock,
-                sales: item.sales,
-                gender: item.gender,
-                category: item.category,
-                sizes: item.sizes || [],
-                imageUrl: item.image_url,   // di DB namanya image_url, di frontend imageUrl
-            }));
-            setAllProducts(formatted);
-        }
+        
+        setActivePage(page as PageType);
     };
 
-    fetchProducts();
-}, []); // [] artinya hanya dijalankan sekali saat aplikasi pertama dibuka
+    useEffect(() => {
+        const timer = setTimeout(() => setIsLoading(false), 2500);
+        return () => clearTimeout(timer);
+    }, []);
+
+    useEffect(() => {
+        const fetchProducts = async () => {
+            const { data, error } = await supabase
+                .from('products')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (!error && data) {
+                setAllProducts(data);
+            }
+        };
+        fetchProducts();
+    }, []);
 
     if (isLoading) return <SplashScreen />;
 
@@ -138,18 +135,10 @@ useEffect(() => {
         return <LoginScreen onLogin={handleLogin} onRegisterPress={() => setIsRegistering(true)} />;
     }
 
-    // DASHBOARD ADMIN
     if (userRole === "admin" && activePage === "admin") {
-        return (
-            <AdminDashboard 
-                onLogout={handleLogout} 
-                products={allProducts} 
-                setProducts={setAllProducts} 
-            />
-        );
+        return <AdminDashboard onLogout={handleLogout} products={allProducts} setProducts={setAllProducts} />;
     }
 
-    // DETAIL PRODUK
     if (selectedProduct) {
         return (
             <ProductDetail
@@ -171,10 +160,8 @@ useEffect(() => {
                         <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false}>
                             <BrandGrid onBrandPress={handleOpenBrand} />
                             <PromoBanner />
-                            {/* ERROR MUNGKIN MASIH MUNCUL DI SINI JIKA FRESHDROPS BELUM DI-FIX */}
-                            <FreshDrops products={allProducts} onProductPress={handleOpenDetail} />
-                            {/* ERROR MUNGKIN MASIH MUNCUL DI SINI JIKA PRODUCTLIST BELUM DI-FIX */}
-                            <ProductList products={allProducts} onProductPress={handleOpenDetail} />
+                            <FreshDrops products={allProducts.slice(0, 5)} onProductPress={handleOpenDetail} />
+                            <ProductList products={allProducts.slice(5, 13)} onProductPress={handleOpenDetail} />
                         </ScrollView>
                     </>
                 )}
@@ -182,43 +169,43 @@ useEffect(() => {
                 {activePage === "kategori" && <KategoriPage onCategoryPress={handleOpenCategory} />}
 
                 {activePage === "brandProducts" && (
-                    <BrandProducts
-                        brandName={selectedBrand}
-                        products={allProducts} 
-                        onBack={navigateToHome}
-                        onProductPress={handleOpenDetail}
-                        onCartPress={navigateToCart}
-                    />
+                    <BrandProducts brandName={selectedBrand} onBack={navigateToHome} onProductPress={handleOpenDetail} onCartPress={navigateToCart} />
                 )}
 
                 {activePage === "categoryProducts" && (
-                    <CategoryProducts
-                        categoryName={selectedCategory}
-                        products={allProducts} 
-                        onBack={navigateToKategori}
-                        onProductPress={handleOpenDetail}
-                    />
+                    <CategoryProducts categoryName={selectedCategory} products={allProducts} onBack={navigateToKategori} onProductPress={handleOpenDetail} />
                 )}
 
                 {activePage === "cart" && (
-                    <CartScreen
-                        onBack={navigateToHome}
-                        userName={userName}
-                        items={cartItems}
-                        onRemoveItem={(index) => {
-                            const newItems = [...cartItems];
-                            newItems.splice(index, 1);
-                            setCartItems(newItems);
-                        }}
-                    />
+                    <CartScreen onBack={navigateToHome} userName={userName} items={cartItems} onRemoveItem={(index) => {
+                        const newItems = [...cartItems];
+                        newItems.splice(index, 1);
+                        setCartItems(newItems);
+                    }} setItems={setCartItems} />
                 )}
 
-                {activePage === "profile" && <ProfileScreen userName={userName} onLogout={handleLogout} />}
+                {activePage === "profile" && (
+                    <ProfileScreen userName={userName} onLogout={handleLogout} onNavigate={handleGlobalNavigate} />
+                )}
+
+                {activePage === "ordersHistory" && (
+                    <OrdersHistoryScreen 
+                        route={{ params: { filterStatus: orderFilter } }} 
+                        onNavigate={handleGlobalNavigate} 
+                    />
+                )}
+                
+                {activePage === "orderDetail" && (
+                    <OrderDetailsScreen 
+                        route={{ params: { orderId: selectedOrderId } }} 
+                        navigation={{ goBack: () => setActivePage("ordersHistory") }} 
+                    />
+                )}
             </View>
 
-            {activePage !== "cart" && activePage !== "admin" && (
+            {(activePage === "home" || activePage === "kategori" || activePage === "profile") && (
                 <Footer
-                    activePage={activePage === "brandProducts" || activePage === "categoryProducts" ? "home" : activePage}
+                    activePage={activePage}
                     onHomePress={navigateToHome}
                     onKategoriPress={navigateToKategori}
                     onCartPress={navigateToCart}

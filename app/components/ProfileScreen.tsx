@@ -1,39 +1,53 @@
-import React from 'react';
-import {
-    View,
-    Text,
-    StyleSheet,
-    TouchableOpacity,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    Alert,
-    Platform,
-    Linking // 1. Import Linking untuk membuka WhatsApp
+import React, { useEffect, useState } from 'react';
+import { 
+    View, 
+    Text, 
+    StyleSheet, 
+    TouchableOpacity, 
+    SafeAreaView, 
+    ScrollView, 
+    StatusBar, 
+    Alert, 
+    Linking 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '../lib/supabase';
 
 interface ProfileScreenProps {
     userName: string; 
     onLogout: () => void;
+    onNavigate?: (page: string, params?: any) => void;
 }
 
-export default function ProfileScreen({ userName, onLogout }: ProfileScreenProps) {
-    
-    // 2. Fungsi untuk menghubungkan ke WhatsApp dengan nomor kamu
+export default function ProfileScreen({ userName, onLogout, onNavigate }: ProfileScreenProps) {
+    const [pendingCount, setPendingCount] = useState(0);
+
+    useEffect(() => {
+        const fetchPendingOrders = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            const { count } = await supabase
+                .from('orders')
+                .select('id', { count: 'exact', head: true })
+                .eq('user_id', user.id)
+                .eq('status', 'Belum Bayar');
+            
+            if (count !== null) setPendingCount(count);
+        };
+
+        fetchPendingOrders();
+    }, []);
+
     const handleWhatsApp = () => {
-        const phoneNumber = '6285281008856'; // Nomor kamu sudah terpasang
+        const phoneNumber = '6285281008856';
         const message = `Halo Admin, saya ${userName}. Saya ingin bertanya tentang pesanan saya.`;
         const url = `whatsapp://send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
 
         Linking.canOpenURL(url)
             .then((supported) => {
-                if (supported) {
-                    return Linking.openURL(url);
-                } else {
-                    // Jika aplikasi WA tidak ada (misal di simulator), buka via browser
-                    return Linking.openURL(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`);
-                }
+                if (supported) return Linking.openURL(url);
+                else return Linking.openURL(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`);
             })
             .catch(() => Alert.alert("Error", "Aplikasi WhatsApp tidak ditemukan"));
     };
@@ -54,7 +68,6 @@ export default function ProfileScreen({ userName, onLogout }: ProfileScreenProps
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
-                
                 <View style={styles.paddingContainer}>
                     <Text style={styles.greetingText}>Hai {userName},</Text>
                     
@@ -71,18 +84,29 @@ export default function ProfileScreen({ userName, onLogout }: ProfileScreenProps
                 </View>
 
                 <View style={styles.sectionMargin}>
-                    <View style={[styles.paddingContainer, styles.rowBetween]}>
-                        <Text style={styles.sectionTitle}>Update Pesanan</Text>
-                        <TouchableOpacity>
-                            <Text style={styles.linkText}>Lihat Semua {'>'}</Text>
-                        </TouchableOpacity>
-                    </View>
-                    
                     <View style={styles.orderStatusRow}>
-                        <StatusIcon icon="wallet-outline" label="Belum Bayar" />
-                        <StatusIcon icon="cube-outline" label="Dikemas" />
-                        <StatusIcon icon="airplane-outline" label="Dikirim" />
-                        <StatusIcon icon="star-outline" label="Ulasan" />
+                        {/* Status Belum Bayar dengan Tanda Titik Merah */}
+                        <TouchableOpacity onPress={() => onNavigate?.('ordersHistory', { filterStatus: 'Belum Bayar' })}>
+                            <View style={styles.statusItem}>
+                                <View>
+                                    <Ionicons name="wallet-outline" size={24} color="#333" />
+                                    {pendingCount > 0 && <View style={styles.redDot} />}
+                                </View>
+                                <Text style={styles.statusLabel}>Belum Bayar</Text>
+                            </View>
+                        </TouchableOpacity>
+                        
+                        <TouchableOpacity onPress={() => onNavigate?.('ordersHistory', { filterStatus: 'Dikemas' })}>
+                            <StatusIcon icon="cube-outline" label="Dikemas" />
+                        </TouchableOpacity>
+                        
+                        <TouchableOpacity onPress={() => onNavigate?.('ordersHistory', { filterStatus: 'Dikirim' })}>
+                            <StatusIcon icon="airplane-outline" label="Dikirim" />
+                        </TouchableOpacity>
+                        
+                        <TouchableOpacity onPress={() => onNavigate?.('ordersHistory', { filterStatus: 'Selesai' })}>
+                            <StatusIcon icon="star-outline" label="Ulasan" />
+                        </TouchableOpacity>
                     </View>
                 </View>
 
@@ -101,19 +125,11 @@ export default function ProfileScreen({ userName, onLogout }: ProfileScreenProps
 
                 <View style={styles.menuSection}>
                     <Text style={styles.menuGroupTitle}>Aktivitas</Text>
-                    
                     <GridItem icon="person-outline" label="Rincian Akun" />
-                    
-                    {/* Live Chat yang sudah dihubungkan ke fungsi handleWhatsApp */}
-                    <GridItem 
-                        icon="chatbubbles-outline" 
-                        label="Live Chat" 
-                        onPress={handleWhatsApp}
-                    />
-                    
+                    <GridItem icon="chatbubbles-outline" label="Live Chat" onPress={handleWhatsApp} />
                     <GridItem icon="settings-outline" label="Preferensi" />
                     <GridItem icon="pricetag-outline" label="Brand Favorit" />
-                    <GridItem icon="cube-outline" label="Riwayat Pesanan" />
+                    <GridItem icon="cube-outline" label="Riwayat Pesanan" onPress={() => onNavigate?.('ordersHistory')} />
                 </View>
 
                 <View style={styles.footerContainer}>
@@ -122,7 +138,6 @@ export default function ProfileScreen({ userName, onLogout }: ProfileScreenProps
                     </TouchableOpacity>
                     <Text style={styles.versionText}>Versi 21.9.0</Text>
                 </View>
-
                 <View style={{ height: 80 }} />
             </ScrollView>
         </SafeAreaView>
@@ -137,11 +152,7 @@ const StatusIcon = ({ icon, label }: { icon: any, label: string }) => (
 );
 
 const GridItem = ({ icon, label, onPress }: { icon: any, label: string, onPress?: () => void }) => (
-    <TouchableOpacity 
-        style={styles.listMenuItem} 
-        onPress={onPress}
-        activeOpacity={0.6}
-    >
+    <TouchableOpacity style={styles.listMenuItem} onPress={onPress} activeOpacity={0.6}>
         <Ionicons name={icon} size={20} color="#007AFF" />
         <Text style={styles.menuItemLabel}>{label}</Text>
         <Ionicons name="chevron-forward" size={16} color="#eee" />
@@ -150,47 +161,32 @@ const GridItem = ({ icon, label, onPress }: { icon: any, label: string, onPress?
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#fff' },
-    header: { 
-        paddingVertical: 15, 
-        alignItems: 'center', 
-        borderBottomWidth: 1, 
-        borderBottomColor: '#f5f5f5' 
-    },
+    header: { paddingVertical: 15, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
     headerTitle: { fontWeight: 'bold', fontSize: 13, letterSpacing: 2 },
     paddingContainer: { paddingHorizontal: 20, marginTop: 20 },
     greetingText: { fontSize: 24, fontWeight: 'bold', color: '#000', marginBottom: 15 },
-    vipBanner: { 
-        flexDirection: 'row', alignItems: 'center', backgroundColor: '#F0F7FF', 
-        padding: 15, borderRadius: 12, borderLeftWidth: 5, borderLeftColor: '#007AFF' 
-    },
+    vipBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F0F7FF', padding: 15, borderRadius: 12, borderLeftWidth: 5, borderLeftColor: '#007AFF' },
     vipBadge: { backgroundColor: '#007AFF', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4, marginRight: 12 },
     vipBadgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
     vipInfo: { flex: 1 },
     vipTitle: { fontSize: 13, fontWeight: 'bold' },
     vipSub: { fontSize: 11, color: '#666' },
     sectionMargin: { marginTop: 30 },
-    sectionTitle: { fontSize: 16, fontWeight: 'bold', marginLeft: 20 },
-    linkText: { fontSize: 12, color: '#888', marginRight: 20 },
     orderStatusRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 20 },
     statusItem: { alignItems: 'center' },
     statusLabel: { fontSize: 11, marginTop: 8, color: '#666' },
+    // Tanda merah (tanpa angka)
+    redDot: { position: 'absolute', right: 0, top: -2, backgroundColor: 'red', borderRadius: 6, width: 12, height: 12, borderWidth: 2, borderColor: '#fff' },
     rowContainer: { flexDirection: 'row', gap: 15, marginTop: 25 },
     walletCard: { flex: 1, padding: 15, borderRadius: 12, backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee' },
     walletValue: { fontSize: 16, fontWeight: 'bold', marginTop: 5 },
     walletLabel: { fontSize: 11, color: '#888' },
     menuSection: { marginTop: 30, paddingHorizontal: 20 },
     menuGroupTitle: { fontSize: 15, fontWeight: 'bold', marginBottom: 15 },
-    listMenuItem: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        paddingVertical: 15, 
-        borderBottomWidth: 1, 
-        borderBottomColor: '#f9f9f9' 
-    },
+    listMenuItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#f9f9f9' },
     menuItemLabel: { flex: 1, marginLeft: 15, fontSize: 14, color: '#333' },
     footerContainer: { paddingHorizontal: 20, marginTop: 40 },
     logoutButton: { padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#ff3b30', alignItems: 'center' },
     logoutButtonText: { color: '#ff3b30', fontWeight: 'bold' },
-    versionText: { textAlign: 'center', color: '#ccc', fontSize: 10, marginTop: 15 },
-    rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }
+    versionText: { textAlign: 'center', color: '#ccc', fontSize: 10, marginTop: 15 }
 });

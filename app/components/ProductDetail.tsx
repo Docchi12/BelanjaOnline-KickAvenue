@@ -18,20 +18,30 @@ const { width } = Dimensions.get('window');
 interface ProductDetailProps {
     product: any;
     onBack: () => void;
-    onAddToCart: (product: any) => void; // Menambahkan prop untuk handle tambah ke keranjang
+    onAddToCart: (product: any) => void;
 }
 
 export default function ProductDetail({ product, onBack, onAddToCart }: ProductDetailProps) {
     const [selectedSize, setSelectedSize] = useState<number | null>(null);
+    
+    // Logika cek stok
+    const isOutOfStock = product.stock <= 0;
+
+    // Fungsi helper untuk format Rupiah
+    const formatRupiah = (amount: any) => {
+        const numericAmount = typeof amount === 'string' 
+            ? parseInt(amount.replace(/[^0-9]/g, '')) 
+            : amount;
+        return `Rp ${numericAmount?.toLocaleString('id-ID') || 0}`;
+    };
 
     const handleAddToCart = () => {
-        if (selectedSize) {
-            // Mengirim data produk beserta ukuran yang dipilih
+        if (selectedSize && !isOutOfStock) {
             onAddToCart({
                 ...product,
                 selectedSize: selectedSize
             });
-            onBack(); // Kembali ke halaman utama setelah menambah
+            onBack(); 
         }
     };
 
@@ -50,8 +60,17 @@ export default function ProductDetail({ product, onBack, onAddToCart }: ProductD
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                 {/* GAMBAR PRODUK */}
-                <View style={styles.imageWrapper}>
-                    <Image source={{ uri: product.image }} style={styles.mainImage} resizeMode="contain" />
+                <View style={[styles.imageWrapper, isOutOfStock && { opacity: 0.6 }]}>
+                    <Image 
+                        source={{ uri: product.image || product.imageUrl }} 
+                        style={styles.mainImage} 
+                        resizeMode="contain" 
+                    />
+                    {isOutOfStock && (
+                        <View style={styles.outOfStockBadge}>
+                            <Text style={styles.outOfStockText}>STOK HABIS</Text>
+                        </View>
+                    )}
                 </View>
 
                 <View style={styles.content}>
@@ -69,7 +88,9 @@ export default function ProductDetail({ product, onBack, onAddToCart }: ProductD
                     </View>
 
                     <Text style={styles.productName}>{product.name}</Text>
-                    <Text style={styles.productPrice}>{product.price}</Text>
+                    <Text style={styles.productPrice}>
+                        {isOutOfStock ? "Tidak Tersedia" : formatRupiah(product.price)}
+                    </Text>
 
                     <View style={styles.divider} />
 
@@ -88,8 +109,10 @@ export default function ProductDetail({ product, onBack, onAddToCart }: ProductD
                                     key={size}
                                     style={[
                                         styles.sizeBox,
-                                        selectedSize === size && styles.sizeBoxSelected
+                                        selectedSize === size && styles.sizeBoxSelected,
+                                        isOutOfStock && { backgroundColor: '#F3F4F6' }
                                     ]}
+                                    disabled={isOutOfStock}
                                     onPress={() => setSelectedSize(size)}
                                 >
                                     <Text style={[
@@ -119,15 +142,18 @@ export default function ProductDetail({ product, onBack, onAddToCart }: ProductD
             <View style={styles.bottomBar}>
                 <View style={styles.priceContainer}>
                     <Text style={styles.totalLabel}>Harga Satuan</Text>
-                    <Text style={styles.totalPrice}>{product.price}</Text>
+                    <Text style={styles.totalPrice}>{formatRupiah(product.price)}</Text>
                 </View>
                 <TouchableOpacity 
-                    style={[styles.buyBtn, !selectedSize && styles.btnDisabled]}
-                    disabled={!selectedSize}
+                    style={[
+                        styles.buyBtn, 
+                        (!selectedSize || isOutOfStock) && styles.btnDisabled
+                    ]} 
+                    disabled={!selectedSize || isOutOfStock}
                     onPress={handleAddToCart}
                 >
                     <Text style={styles.buyBtnText}>
-                        {selectedSize ? 'Tambah ke Keranjang' : 'Pilih Ukuran'}
+                        {isOutOfStock ? 'Stok Habis' : (selectedSize ? 'Tambah ke Keranjang' : 'Pilih Ukuran')}
                     </Text>
                 </TouchableOpacity>
             </View>
@@ -136,51 +162,21 @@ export default function ProductDetail({ product, onBack, onAddToCart }: ProductD
 }
 
 const styles = StyleSheet.create({
-    safeArea: { 
-        flex: 1, 
-        backgroundColor: '#fff',
-        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 10,
-        paddingVertical: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F5F5F5'
-    },
+    safeArea: { flex: 1, backgroundColor: '#fff', paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F5F5F5' },
     headerTitle: { fontSize: 16, fontWeight: 'bold', color: '#333' },
     iconButton: { padding: 8 },
     scrollContent: { paddingBottom: 120 },
-    imageWrapper: {
-        width: width,
-        height: 320,
-        backgroundColor: '#F9F9F9',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
+    imageWrapper: { width: width, height: 320, backgroundColor: '#F9F9F9', justifyContent: 'center', alignItems: 'center' },
     mainImage: { width: '85%', height: '85%' },
+    outOfStockBadge: { position: 'absolute', backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10 },
+    outOfStockText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
     content: { padding: 20 },
-    metaRow: { 
-        flexDirection: 'row', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        marginBottom: 10 
-    },
+    metaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
     brandText: { fontSize: 13, color: '#888', fontWeight: 'bold', textTransform: 'uppercase' },
     badgeGroup: { flexDirection: 'row', gap: 6 },
-    blueBadge: { 
-        backgroundColor: '#EBF5FF',
-        paddingHorizontal: 10, 
-        paddingVertical: 4, 
-        borderRadius: 6 
-    },
-    blueBadgeText: { 
-        color: '#007AFF',
-        fontSize: 11, 
-        fontWeight: 'bold' 
-    },
+    blueBadge: { backgroundColor: '#EBF5FF', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
+    blueBadgeText: { color: '#007AFF', fontSize: 11, fontWeight: 'bold' },
     productName: { fontSize: 24, fontWeight: 'bold', color: '#222', marginBottom: 6 },
     productPrice: { fontSize: 22, fontWeight: 'bold', color: '#007AFF' },
     divider: { height: 1, backgroundColor: '#F0F0F0', marginVertical: 20 },
@@ -189,49 +185,16 @@ const styles = StyleSheet.create({
     sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#333' },
     sizeGuide: { fontSize: 12, color: '#007AFF', fontWeight: '600' },
     sizeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-    sizeBox: {
-        width: (width - 70) / 4,
-        height: 48,
-        borderWidth: 1.5,
-        borderColor: '#E5E7EB',
-        borderRadius: 12,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#fff',
-    },
+    sizeBox: { width: (width - 70) / 4, height: 48, borderWidth: 1.5, borderColor: '#E5E7EB', borderRadius: 12, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' },
     sizeBoxSelected: { borderColor: '#007AFF', backgroundColor: '#EBF5FF' },
     sizeLabel: { fontSize: 15, fontWeight: '600', color: '#4B5563' },
     sizeLabelSelected: { color: '#007AFF', fontWeight: 'bold' },
     description: { fontSize: 14, color: '#666', lineHeight: 22 },
-    bottomBar: {
-        position: 'absolute',
-        bottom: 0,
-        width: width,
-        paddingHorizontal: 20,
-        paddingTop: 15,
-        paddingBottom: Platform.OS === 'ios' ? 35 : 25,
-        backgroundColor: '#fff',
-        borderTopWidth: 1,
-        borderTopColor: '#f3f4f6',
-        flexDirection: 'row',
-        alignItems: 'center',
-        elevation: 20,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-    },
+    bottomBar: { position: 'absolute', bottom: 0, width: width, paddingHorizontal: 20, paddingTop: 15, paddingBottom: Platform.OS === 'ios' ? 35 : 25, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#f3f4f6', flexDirection: 'row', alignItems: 'center', elevation: 20, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 4 },
     priceContainer: { flex: 1 },
     totalLabel: { fontSize: 12, color: '#9CA3AF', marginBottom: 2 },
     totalPrice: { fontSize: 18, fontWeight: 'bold', color: '#111827' },
-    buyBtn: {
-        flex: 1.5,
-        backgroundColor: '#007AFF',
-        height: 54,
-        borderRadius: 14,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
+    buyBtn: { flex: 1.5, backgroundColor: '#007AFF', height: 54, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
     btnDisabled: { backgroundColor: '#E5E7EB' },
     buyBtnText: { color: '#fff', fontSize: 15, fontWeight: 'bold' },
 });

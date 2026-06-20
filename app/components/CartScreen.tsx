@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
     View, 
     Text, 
@@ -12,20 +12,23 @@ import {
     Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '../lib/supabase';
 
 interface CartScreenProps {
     userName: string;
     onBack: () => void;
     items: any[]; 
     onRemoveItem: (index: number) => void;
+    setItems: (items: any[]) => void;
 }
 
-export default function CartScreen({ userName, onBack, items, onRemoveItem }: CartScreenProps) {
+export default function CartScreen({ userName, onBack, items, onRemoveItem, setItems }: CartScreenProps) {
     const [selectedPayment, setSelectedPayment] = useState('Gopay');
     const [selectedCourier, setSelectedCourier] = useState('J&T Express');
     const [isVoucherChecked, setIsVoucherChecked] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [userProfile, setUserProfile] = useState({ address: '', phone: '' });
 
-    // --- LOGIKA PERHITUNGAN ---
     const subtotal = items.reduce((sum, item) => {
         const price = typeof item.price === 'string' 
             ? parseInt(item.price.replace(/[^0-9]/g, '')) 
@@ -34,12 +37,109 @@ export default function CartScreen({ userName, onBack, items, onRemoveItem }: Ca
     }, 0);
 
     const shippingFee = items.length > 0 ? 25000 : 0;
-    
-    // Potongan Voucher (Hanya aktif jika dicentang)
     const voucherOngkir = (isVoucherChecked && items.length > 0) ? 15000 : 0;
     const totalVoucherProduct = isVoucherChecked ? (items.length * 20000) : 0;
-
     const total = subtotal + shippingFee - voucherOngkir - totalVoucherProduct;
+
+    useEffect(() => {
+        const fetchUserProfile = async () => {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    const { data: profile, error } = await supabase
+                        .from('profiles')
+                        .select('address, phone')
+                        .eq('id', user.id)
+                        .single();
+                    
+                    if (error) throw error;
+
+                    if (profile) {
+                        setUserProfile({
+                            address: profile.address || '',
+                            phone: profile.phone || '-'
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching profile:", error);
+            }
+        };
+        fetchUserProfile();
+    }, []);
+
+    const handleBayarSekarang = async () => {
+        if (isProcessing) return;
+        
+        // Memperbaiki pengecekan alamat agar tidak salah deteksi
+        if (!userProfile.address || userProfile.address.trim() === '') {
+            Alert.alert("Gagal", "Silakan lengkapi alamat di profil Anda terlebih dahulu.");
+            return;
+        }
+
+        setIsProcessing(true);
+
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error("User tidak ditemukan");
+
+            const { data: order, error: orderError } = await supabase
+                .from('orders')
+                .insert([{ 
+                    user_id: user.id, 
+                    total_amount: total, 
+                    payment_status: 'Menunggu', 
+                    status: 'Belum Bayar',
+                    order_status: 'Diproses', 
+                    courier: selectedCourier,
+                    payment_method: selectedPayment, 
+                    order_code: 'ORD-' + Date.now().toString().slice(-6),
+                    shipping_address: userProfile.address,
+                    voucher_applied: isVoucherChecked
+                }])
+                .select('id')
+                .single();
+
+            if (orderError) throw orderError;
+
+            const itemsToInsert = items.map(item => ({
+                order_id: order.id,
+                product_id: item.id,
+                product_name: item.name,
+                product_brand: item.brand,
+                selected_size: item.selectedSize || '-',
+                quantity: 1, 
+                unit_price: typeof item.price === 'string' ? parseInt(item.price.replace(/[^0-9]/g, '')) : item.price
+            }));
+
+            const { error: itemsError } = await supabase.from('order_items').insert(itemsToInsert);
+            if (itemsError) throw itemsError;
+
+            for (const item of items) {
+                const { data: product } = await supabase
+                    .from('products')
+                    .select('stock')
+                    .eq('id', item.id)
+                    .single();
+
+                if (product && product.stock > 0) {
+                    await supabase
+                        .from('products')
+                        .update({ stock: product.stock - 1 })
+                        .eq('id', item.id);
+                }
+            }
+
+            Alert.alert("Berhasil", "Pesanan dibuat! Silakan cek menu Belum Bayar di Profil.");
+            setItems([]);
+            onBack(); 
+        } catch (error) {
+            console.error("DETAIL ERROR:", error);
+            Alert.alert("Gagal", "Terjadi kesalahan saat memproses pesanan.");
+        } finally {
+            setIsProcessing(false);
+        }
+    };
 
     const formatIDR = (amount: number) => {
         const safeAmount = amount < 0 ? 0 : amount;
@@ -49,8 +149,6 @@ export default function CartScreen({ userName, onBack, items, onRemoveItem }: Ca
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="light-content" />
-            
-            {/* HEADER */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={onBack} style={styles.backBtn}>
                     <Ionicons name="arrow-back" size={24} color="white" />
@@ -60,8 +158,6 @@ export default function CartScreen({ userName, onBack, items, onRemoveItem }: Ca
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-                
-                {/* ALAMAT */}
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
                         <Ionicons name="location" size={20} color="#007AFF" />
@@ -69,16 +165,16 @@ export default function CartScreen({ userName, onBack, items, onRemoveItem }: Ca
                     </View>
                     <View style={styles.addressBox}>
                         <Text style={styles.userNameText}>{userName} <Text style={styles.tagLabel}>(Utama)</Text></Text> 
-                        <Text style={styles.addressText}>Jl. Sudirman No. 123, Jakarta Barat</Text>
+                        <Text style={styles.addressText}>{userProfile.address || 'Alamat belum diatur'}</Text>
+                        <Text style={styles.addressText}>Telp: {userProfile.phone || '-'}</Text>
                     </View>
                 </View>
 
-                {/* PRODUK */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Produk Dipesan</Text>
                     {items.map((item, index) => (
                         <View key={index} style={styles.productItem}>
-                            <Image source={{ uri: item.image }} style={styles.productImage} />
+                            <Image source={{ uri: item.imageUrl || item.image }} style={styles.productImage} />
                             <View style={styles.productInfo}>
                                 <View style={styles.rowBetween}>
                                     <Text style={styles.productName} numberOfLines={1}>{item.name}</Text>
@@ -92,25 +188,21 @@ export default function CartScreen({ userName, onBack, items, onRemoveItem }: Ca
                     ))}
                 </View>
 
-                {/* VOUCHER (MODEL CENTANG) */}
                 <View style={styles.section}>
-                    <TouchableOpacity 
-                        style={styles.rowBetween} 
-                        onPress={() => setIsVoucherChecked(!isVoucherChecked)}
-                    >
-                        <View style={styles.rowAlign}>
-                            <Ionicons name="pricetag" size={20} color="#007AFF" />
-                            <Text style={styles.voucherText}>Gunakan Voucher Potongan</Text>
-                        </View>
-                        <Ionicons 
-                            name={isVoucherChecked ? "checkbox" : "square-outline"} 
-                            size={24} 
-                            color={isVoucherChecked ? "#007AFF" : "#CCC"} 
-                        />
-                    </TouchableOpacity>
+                    <Text style={[styles.sectionTitle, { marginBottom: 10 }]}>Metode Pembayaran</Text>
+                    <View style={styles.paymentGrid}>
+                        {['Gopay', 'ShopeePay', 'Bank Transfer', 'COD'].map((method) => (
+                            <TouchableOpacity 
+                                key={method}
+                                style={[styles.paymentBtn, selectedPayment === method && styles.activePaymentBtn]}
+                                onPress={() => setSelectedPayment(method)}
+                            >
+                                <Text style={[styles.paymentText, selectedPayment === method && styles.activePaymentText]}>{method}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
                 </View>
 
-                {/* KURIR */}
                 <View style={styles.section}>
                     <Text style={[styles.sectionTitle, { marginBottom: 10 }]}>Pilihan Pengiriman</Text>
                     {['J&T Express', 'SiCepat Reg'].map((courier) => (
@@ -129,25 +221,20 @@ export default function CartScreen({ userName, onBack, items, onRemoveItem }: Ca
                     ))}
                 </View>
 
-                {/* METODE PEMBAYARAN (SUDAH KEMBALI) */}
                 <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { marginBottom: 10 }]}>Metode Pembayaran</Text>
-                    <View style={styles.paymentGrid}>
-                        {['Gopay', 'ShopeePay', 'Bank Transfer', 'COD'].map((method) => (
-                            <TouchableOpacity 
-                                key={method} 
-                                style={[styles.paymentBtn, selectedPayment === method && styles.activePaymentBtn]}
-                                onPress={() => setSelectedPayment(method)}
-                            >
-                                <Text style={selectedPayment === method ? styles.activePaymentText : styles.paymentText}>
-                                    {method}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
+                    <TouchableOpacity style={styles.rowBetween} onPress={() => setIsVoucherChecked(!isVoucherChecked)}>
+                        <View style={styles.rowAlign}>
+                            <Ionicons name="pricetag" size={20} color="#007AFF" />
+                            <Text style={styles.voucherText}>Gunakan Voucher Potongan</Text>
+                        </View>
+                        <Ionicons 
+                            name={isVoucherChecked ? "checkbox" : "square-outline"} 
+                            size={24} 
+                            color={isVoucherChecked ? "#007AFF" : "#CCC"} 
+                        />
+                    </TouchableOpacity>
                 </View>
 
-                {/* RINCIAN */}
                 <View style={styles.billingSection}>
                     <Text style={styles.sectionTitle}>Rincian Pembayaran</Text>
                     <View style={styles.billingRow}>
@@ -158,7 +245,6 @@ export default function CartScreen({ userName, onBack, items, onRemoveItem }: Ca
                         <Text style={styles.billingLabel}>Biaya Pengiriman</Text>
                         <Text style={styles.billingValue}>{formatIDR(shippingFee)}</Text>
                     </View>
-
                     {isVoucherChecked && (
                         <>
                             <View style={styles.billingRow}>
@@ -171,7 +257,6 @@ export default function CartScreen({ userName, onBack, items, onRemoveItem }: Ca
                             </View>
                         </>
                     )}
-
                     <View style={[styles.billingRow, styles.totalRow]}>
                         <Text style={styles.totalLabel}>Total Pembayaran</Text>
                         <Text style={styles.totalValue}>{formatIDR(total)}</Text>
@@ -184,15 +269,21 @@ export default function CartScreen({ userName, onBack, items, onRemoveItem }: Ca
                     <Text style={styles.footerLabel}>Total Tagihan</Text>
                     <Text style={styles.footerPrice}>{formatIDR(total)}</Text>
                 </View>
-                <TouchableOpacity style={styles.checkoutBtn} onPress={() => Alert.alert("Berhasil", "Pesanan diproses!")}>
-                    <Text style={styles.checkoutText}>Bayar Sekarang</Text>
+                <TouchableOpacity 
+                    style={[styles.checkoutBtn, isProcessing && { opacity: 0.5 }]} 
+                    onPress={handleBayarSekarang}
+                    disabled={isProcessing}
+                >
+                    <Text style={styles.checkoutText}>
+                        {isProcessing ? "Memproses..." : "Bayar Sekarang"}
+                    </Text>
                 </TouchableOpacity>
             </View>
         </SafeAreaView>
     );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create({ 
     container: { flex: 1, backgroundColor: '#F8F9FA' },
     header: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: 50, paddingHorizontal: 20, paddingBottom: 25, backgroundColor: '#007AFF', alignItems: 'center' },
     headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#fff' },
