@@ -51,6 +51,13 @@ export default function OrderDetailModal({ visible, order, onClose, onUpdate, ge
                                 <Text key={i} style={styles.value}>• {it.name} (x{it.qty})</Text>
                             ))}
                         </View>
+                    {order.status === 'Menunggu Pembayaran' && (
+                            <View style={styles.infoBox}>
+                                <Text style={styles.infoText}>
+                                    Menunggu pembeli menyelesaikan pembayaran. Pesanan akan otomatis pindah ke "Dikemas" setelah dibayar.
+                                </Text>
+                            </View>
+                        )}
                     </ScrollView>
 
                     <View style={styles.modalFooter}>
@@ -58,13 +65,13 @@ export default function OrderDetailModal({ visible, order, onClose, onUpdate, ge
                             <Text style={styles.btnCloseText}>Tutup</Text>
                         </TouchableOpacity>
                         
-                        {order.status !== 'Selesai' && (
+                        {(order.status === 'Dikemas' || order.status === 'Dikirim') && (
                             <TouchableOpacity 
                                 style={styles.btnAction} 
-                                onPress={() => onUpdate(order.id, order.status)}
+                                onPress={() => onUpdate(order._realId, order.status)}
                             >
                                 <Text style={styles.btnActionText}>
-                                    Update Ke {order.status === 'Diproses' ? 'Dikirim' : 'Selesai'}
+                                    Update Ke {order.status === 'Dikemas' ? 'Dikirim' : 'Selesai'}
                                 </Text>
                             </TouchableOpacity>
                         )}
@@ -86,6 +93,8 @@ const styles = StyleSheet.create({
     detailSection: { marginBottom: 15 },
     label: { fontSize: 10, color: '#8E8E93', fontWeight: 'bold', marginBottom: 4 },
     value: { fontSize: 14, color: '#1C1C1E', lineHeight: 20 },
+    infoBox: { backgroundColor: '#FFF7E6', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#FFE0A3' },
+    infoText: { fontSize: 12, color: '#9A6700', lineHeight: 18 },
     modalFooter: { flexDirection: 'row', gap: 10 },
     btnClose: { flex: 1, backgroundColor: '#F2F2F7', padding: 16, borderRadius: 12, alignItems: 'center' },
     btnCloseText: { fontWeight: 'bold', color: '#8E8E93' },

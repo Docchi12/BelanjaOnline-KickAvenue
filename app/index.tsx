@@ -28,7 +28,7 @@ import RegisterScreen from "./components/RegisterScreen";
 import SplashScreen from "./components/SplashScreen";
 import OrderDetailsScreen from "./components/OrderDetailsScreen";
 import OrdersHistoryScreen from "./components/OrdersHistoryScreen"; 
-
+import ReviewScreen from "./components/ReviewScreen";
 import { Product } from "./components/productsData";
 
 type PageType =
@@ -40,7 +40,8 @@ type PageType =
     | "profile"
     | "admin"
     | "ordersHistory"
-    | "orderDetail";
+    | "orderDetail"
+    | "review";
 
 export default function Index() {
     const [isLoading, setIsLoading] = useState(true);
@@ -196,11 +197,24 @@ export default function Index() {
                 )}
                 
                 {activePage === "orderDetail" && (
-                    <OrderDetailsScreen 
-                        route={{ params: { orderId: selectedOrderId } }} 
-                        navigation={{ goBack: () => setActivePage("ordersHistory") }} 
-                    />
-                )}
+    <OrderDetailsScreen 
+        route={{ params: { orderId: selectedOrderId } }} 
+        navigation={{ 
+            goBack: () => setActivePage("ordersHistory"),
+            goToReview: (orderId: string) => {
+                setSelectedOrderId(orderId);
+                setActivePage("review");
+            },
+        }} 
+    />
+)}
+
+{activePage === "review" && (
+    <ReviewScreen
+        route={{ params: { orderId: selectedOrderId } }}
+        navigation={{ goBack: () => setActivePage("ordersHistory") }}
+    />
+)}
             </View>
 
             {(activePage === "home" || activePage === "kategori" || activePage === "profile") && (

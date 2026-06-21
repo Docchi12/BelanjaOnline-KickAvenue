@@ -77,24 +77,31 @@ export default function OrdersTab() {
     };
 
     const handleUpdateStatus = (id: string, currentStatus: string) => {
-        if (currentStatus === 'Selesai') return;
-        
-        // Logika perpindahan status
-        const nextStatus = currentStatus === 'Menunggu Pembayaran' ? 'Dikemas' : 
-                           currentStatus === 'Dikemas' ? 'Dikirim' : 'Selesai';
+        if (currentStatus === 'Selesai' || currentStatus === 'Menunggu Pembayaran') return;
+
+        // Logika perpindahan status: Dikemas -> Dikirim -> Selesai
+        const nextStatus = currentStatus === 'Dikemas' ? 'Dikirim' : 'Selesai';
 
         Alert.alert("Konfirmasi", `Pindahkan ke "${nextStatus}"?`, [
             { text: "Batal", style: "cancel" },
             {
                 text: "Ya, Update",
                 onPress: async () => {
-                    const { error } = await supabase
-                        .from('orders')
-                        .update({ order_status: nextStatus })
-                        .eq('id', id); // Kirim _realId dari modal
+                    // Update order_status (sisi admin) sekaligus status (sisi user) agar selalu sinkron
+                    const { data, error } = await supabase
+    .from('orders')
+    .update({ order_status: nextStatus, status: nextStatus })
+    .eq('id', id)
+    .select(); // <-- tambahkan ini
 
-                    if (error) Alert.alert('Gagal', error.message);
-                    else setModalVisible(false);
+if (error) {
+    Alert.alert('Gagal', error.message);
+} else if (!data || data.length === 0) {
+    Alert.alert('Gagal', 'Update ditolak sistem (kemungkinan izin akses admin belum diatur).');
+} else {
+    setModalVisible(false);
+    fetchOrders();
+}
                 },
             },
         ]);
