@@ -73,7 +73,8 @@ export default function OrderDetailsScreen({
     return (
       <ActivityIndicator style={{ flex: 1 }} size="large" color="#007AFF" />
     );
-
+console.log("ORDER STATUS:", order.status);
+console.log("ORDER STATUS TYPE:", typeof order.status);
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -130,7 +131,7 @@ export default function OrderDetailsScreen({
   Total Bayar: Rp {order.total_amount?.toLocaleString("id-ID")}
 </Text>
 
-{order.status === 'Belum Bayar' && (
+{order.status === 'Menunggu Pembayaran' && (
     <TouchableOpacity style={styles.payButton} onPress={handlePayment}>
         <Text style={styles.payButtonText}>Saya Bayar</Text>
     </TouchableOpacity>

@@ -31,7 +31,7 @@ export default function ProfileScreen({ userName, onLogout, onNavigate }: Profil
                 .from('orders')
                 .select('id', { count: 'exact', head: true })
                 .eq('user_id', user.id)
-                .eq('status', 'Belum Bayar');
+                .eq('status', 'Menunggu Pembayaran');
             
             if (count !== null) setPendingCount(count);
         };
@@ -86,7 +86,7 @@ export default function ProfileScreen({ userName, onLogout, onNavigate }: Profil
                 <View style={styles.sectionMargin}>
                     <View style={styles.orderStatusRow}>
                         {/* Status Belum Bayar dengan Tanda Titik Merah */}
-                        <TouchableOpacity onPress={() => onNavigate?.('ordersHistory', { filterStatus: 'Belum Bayar' })}>
+                        <TouchableOpacity onPress={() => onNavigate?.('ordersHistory', { filterStatus: 'Menunggu Pembayaran' })}>
                             <View style={styles.statusItem}>
                                 <View>
                                     <Ionicons name="wallet-outline" size={24} color="#333" />
